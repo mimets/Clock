@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#08081a">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #08081a;
+  --bg2: #0f0f2e;
+  --primary: #4f8cff;
+  --accent: #a855f7;
+  --primary-dim: rgba(79,140,255,0.12);
+  --accent-dim: rgba(168,85,247,0.12);
+  --success: #4fff96;
+  --card: rgba(255,255,255,0.04);
+  --card-border: rgba(255,255,255,0.07);
+  --text: #ffffff;
+  --dim: rgba(255,255,255,0.4);
+  --dimmer: rgba(255,255,255,0.2);
+  --radius: 24px;
+  --rs: 12px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --blob1: #4f8cff;
+  --blob2: #a855f7;
+  --blob3: #06b6d4;
+  transition: --primary 0.6s, --accent 0.6s, --bg 0.6s, --bg2 0.6s, --blob1 0.6s, --blob2 0.6s, --blob3 0.6s;
+}
+
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; transition:background 0.6s; }
+
+/* ── ANIMATED BG ── */
+.bg-anim { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.bg-anim .blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.12; animation:blobMove 20s ease-in-out infinite alternate; }
+.bg-anim .blob:nth-child(1) { width:600px; height:600px; top:-15%; left:-10%; animation-duration:25s; transition:background 0.8s; }
+.bg-anim .blob:nth-child(2) { width:500px; height:500px; bottom:-15%; right:-10%; animation-duration:20s; animation-delay:-5s; transition:background 0.8s; }
+.bg-anim .blob:nth-child(3) { width:400px; height:400px; top:40%; left:50%; animation-duration:22s; animation-delay:-10s; transition:background 0.8s; }
+@keyframes blobMove {
+  0%   { transform:translate(0,0) scale(1); }
+  33%  { transform:translate(80px,-60px) scale(1.1); }
+  66%  { transform:translate(-60px,80px) scale(0.9); }
+  100% { transform:translate(40px,-30px) scale(1.05); }
+}
+
+/* ── GRID BG ── */
+.bg-grid { position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px; }
+
+/* ── SCREENS ── */
+.screen { display:none; position:relative; z-index:1; width:100%; min-height:100vh; align-items:center; justify-content:center; padding:20px; }
+.screen.active { display:flex; }
+
+.glass { background:var(--card); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid var(--card-border); border-radius:var(--radius); box-shadow:0 24px 80px rgba(0,0,0,0.5); }
+
+/* ═══════════ AUTH ═══════════ */
+.auth-card { padding:48px 40px 40px; max-width:400px; width:100%; text-align:center; animation:fadeUp 0.6s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+.auth-icon { font-size:52px; margin-bottom:6px; display:block; }
+.auth-title { font-size:24px; font-weight:800; margin-bottom:4px; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; transition:background 0.6s; }
+.auth-sub { font-size:14px; color:var(--dim); margin-bottom:30px; }
+
+.fg { text-align:left; margin-bottom:16px; }
+.fg label { display:block; font-size:11px; font-weight:600; color:var(--dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.8px; }
+.fg input { width:100%; padding:14px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:var(--rs); color:#fff; font-size:15px; font-family:var(--font); transition:border-color 0.25s, box-shadow 0.25s; }
+.fg input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-dim); }
+.fg input::placeholder { color:var(--dimmer); }
+
+.btn { width:100%; padding:14px; border:none; border-radius:var(--rs); font-size:15px; font-weight:600; font-family:var(--font); cursor:pointer; transition:opacity 0.2s, transform 0.15s, background 0.4s; position:relative; overflow:hidden; }
+.btn:active { transform:scale(0.98); }
+.btn-pri { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; margin-top:4px; }
+.btn-pri:hover { opacity:0.9; }
+.btn-ghost { background:transparent; color:var(--dim); margin-top:14px; font-size:13px; font-weight:500; }
+.btn-ghost:hover { color:var(--text); }
+.auth-err { font-size:13px; color:#f87171; min-height:20px; margin-top:10px; transition:opacity 0.3s; }
+
+/* ═══════════ DASHBOARD ═══════════ */
+#dashboard { align-items:flex-start; padding:20px 28px; overflow:hidden; height:100vh; }
+.dash-c { max-width:1100px; width:100%; margin:0 auto; height:100%; display:flex; flex-direction:column; }
+
+.dash-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0; }
+.dash-brand { display:flex; align-items:center; gap:10px; }
+.dash-brand-icon { width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; font-size:16px; transition:background 0.6s; }
+.dash-brand-text { font-size:18px; font-weight:800; letter-spacing:-0.3px; background:linear-gradient(90deg,#fff,#a0b4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.dash-actions { display:flex; align-items:center; gap:8px; }
+
+.icon-btn { width:36px; height:36px; border-radius:var(--rs); background:var(--card); border:1px solid var(--card-border); color:var(--dim); font-size:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; line-height:1; }
+.icon-btn:hover { background:rgba(255,255,255,0.08); color:var(--text); }
+
+.user-badge { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim); margin-right:4px; }
+.user-avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; transition:background 0.6s; }
+
+.dash-body { display:flex; gap:16px; flex:1; min-height:0; }
+.dash-left { flex:0 0 240px; display:flex; flex-direction:column; gap:12px; }
+.dash-right { flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; overflow-y:auto; }
+
+.clock-wrap { display:flex; justify-content:center; }
+#clockCanvas { width:220px; height:220px; }
+
+.date-info { text-align:center; font-size:12px; color:var(--dimmer); letter-spacing:0.2px; margin-top:-6px; }
+.date-info span { color:var(--dim); }
+
+.pcard { padding:16px 20px; margin-bottom:0; }
+.pc-h { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; }
+.pc-label { font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
+.pc-pct { font-size:28px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; transition:background 0.6s; }
+
+.pb-wrap { height:10px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:visible; margin-bottom:8px; position:relative; }
+.pb-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.8s cubic-bezier(0.22,1,0.36,1),background 0.6s; position:relative; }
+.pb-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent); animation:shimmer 2s infinite; }
+@keyframes shimmer { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }
+
+.milestones { display:flex; justify-content:space-between; position:absolute; inset:0; padding:0 2px; pointer-events:none; }
+.milestone { width:14px; height:14px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.05); margin-top:-2px; display:flex; align-items:center; justify-content:center; font-size:7px; transition:all 0.4s; }
+.milestone.reached { background:rgba(79,255,150,0.2); border-color:var(--success); }
+
+.pc-footer { display:flex; justify-content:space-between; font-size:12px; color:var(--dimmer); font-weight:500; }
+
+.ccard { padding:14px 20px; text-align:center; margin-bottom:0; }
+.ctop { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:8px; }
+
+.cd-grid { display:flex; justify-content:center; align-items:center; gap:6px; }
+.cd-item { display:flex; flex-direction:column; align-items:center; min-width:42px; }
+.cd-num { font-size:26px; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; line-height:1.1; text-shadow:0 0 40px rgba(79,140,255,0.15); transition:text-shadow 0.6s; }
+.cd-label { font-size:7px; color:var(--dimmer); margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.cd-sep { font-size:16px; color:var(--dimmer); font-weight:300; padding-bottom:8px; }
+
+.cbadge { display:inline-block; padding:4px 14px; background:rgba(79,255,150,0.1); border:1px solid rgba(79,255,150,0.2); border-radius:20px; color:var(--success); font-size:11px; font-weight:600; letter-spacing:0.3px; margin-bottom:8px; }
+
+.cd-workdays-row { margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05); }
+.cd-workdays-row .ctop { margin-bottom:6px; }
+
+/* ── Status Card ── */
+.scard { padding:12px 16px; margin-bottom:0; }
+.sc-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.sc-status { display:flex; align-items:center; gap:6px; }
+.sc-icon { font-size:14px; }
+.sc-phase { font-size:12px; font-weight:600; }
+.sc-phase.lunch { color:#fbbf24; }
+.sc-phase.done { color:var(--success); }
+
+.sc-today { text-align:right; }
+.sc-today-num { font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.sc-today-label { display:block; font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-top:-1px; }
+
+.sc-bar-wrap { height:3px; background:rgba(255,255,255,0.06); border-radius:2px; margin-bottom:8px; overflow:hidden; }
+.sc-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.8s cubic-bezier(0.22,1,0.36,1); }
+
+.sc-bottom { display:flex; justify-content:space-between; font-size:11px; }
+.sc-remaining { color:var(--dim); }
+
+/* ── Live countdown section ── */
+.sc-live { display:flex; align-items:center; gap:8px; padding:5px 0; margin-bottom:4px; border-top:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.04); }
+.sc-live-icon { font-size:14px; }
+.sc-live-label { font-size:10px; color:var(--dim); font-weight:500; }
+.sc-live-time { font-size:18px; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; text-shadow:0 0 30px rgba(79,140,255,0.15); line-height:1.2; letter-spacing:0.5px; }
+
+/* ── Monitor Card ── */
+.mcard { padding:12px 16px; margin-bottom:0; }
+.mc-header { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.mc-icon { font-size:12px; }
+.mc-label { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
+
+.mc-mon-flex { display:flex; gap:16px; align-items:center; }
+
+.mc-monthly { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); white-space:nowrap; }
+.mc-monthly span:first-child { font-size:13px; }
+
+.mc-week-col { flex:1; min-width:0; }
+
+.mc-week-label { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.mc-bars { display:flex; flex-direction:column; gap:3px; }
+.mc-row { display:flex; align-items:center; gap:6px; }
+.mc-dn { font-size:9px; color:var(--dim); font-weight:600; width:22px; text-transform:uppercase; letter-spacing:0.3px; flex-shrink:0; }
+.mc-bw { flex:1; height:6px; background:rgba(255,255,255,0.04); border-radius:3px; overflow:hidden; }
+.mc-bf { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.6s ease; }
+.mc-h { font-size:8px; color:var(--dim); font-weight:600; width:24px; text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0; }
+
+/* ── Screen Header (for leaderboard/settings pages) ── */
+.scr-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; width:100%; }
+.scr-back { width:36px; height:36px; border-radius:var(--rs); background:var(--card); border:1px solid var(--card-border); color:var(--dim); font-size:18px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.scr-back:hover { background:rgba(255,255,255,0.08); color:var(--text); }
+.scr-title { font-size:20px; font-weight:800; }
+.scr-sub { font-size:12px; color:var(--dim); margin-top:1px; }
+.scr-body { width:100%; max-width:560px; margin:0 auto; animation:fadeUp 0.4s ease; }
+
+/* ── Stats Modal ── */
+.stats-chart-wrap { text-align:center; margin:8px 0 12px; }
+.stats-chart-wrap canvas { width:100%; height:auto; background:rgba(255,255,255,0.02); border-radius:10px; }
+.stats-legend { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+.stats-legend-item { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--dim); }
+.stats-legend-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+.stats-summary { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:8px 0 12px; }
+.stats-summary-item { text-align:center; padding:6px 14px; background:rgba(255,255,255,0.03); border-radius:8px; }
+.stats-summary-num { font-size:18px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
+.stats-summary-label { font-size:9px; color:var(--dimmer); text-transform:uppercase; letter-spacing:0.4px; margin-top:1px; }
+
+/* ── Confetti canvas ── */
+#confettiCanvas { position:fixed; inset:0; z-index:9999; pointer-events:none; }
+
+/* ── Leaderboard ── */
+.lb-empty { text-align:center; padding:30px 0; font-size:14px; color:var(--dimmer); }
+.lb-row { display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:8px; transition:background 0.2s; }
+.lb-row:hover { background:rgba(255,255,255,0.03); }
+.lb-row + .lb-row { border-top:1px solid rgba(255,255,255,0.04); }
+.lb-rank { font-size:18px; width:28px; text-align:center; flex-shrink:0; }
+.lb-user { flex:1; font-size:14px; font-weight:600; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lb-me { color:var(--primary); }
+.lb-right { flex-shrink:0; }
+.lb-pct { font-size:14px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; }
+.lb-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+.lb-badge-done { background:rgba(79,255,150,0.12); color:var(--success); }
+
+/* ═══════════ SETTINGS MODAL ═══════════ */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); z-index:100; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+
+.modal-c { background:#11112e; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); width:100%; max-width:440px; max-height:90vh; overflow-y:auto; box-shadow:0 24px 80px rgba(0,0,0,0.6); animation:fadeUp 0.3s ease; transition:background 0.6s; }
+.modal-inner { padding:28px 28px 24px; }
+
+.modal-c h2 { font-size:18px; font-weight:700; margin-bottom:2px; }
+.modal-sub { font-size:13px; color:var(--dim); margin-bottom:20px; }
+
+/* Tabs */
+.stabs { display:flex; gap:4px; margin-bottom:20px; background:rgba(255,255,255,0.04); border-radius:10px; padding:4px; }
+.stab { flex:1; padding:9px 12px; border:none; border-radius:8px; background:transparent; color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.25s; text-transform:uppercase; letter-spacing:0.5px; }
+.stab:hover { color:var(--text); }
+.stab.active { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.3); }
+
+spanel { display:none; }
+spanel.active { display:block; animation:fadeUp 0.25s ease; }
+
+/* Period tab */
+.date-row { display:flex; gap:12px; }
+.date-row .fg { flex:1; }
+
+/* Hours tab */
+.time-row { display:flex; gap:12px; align-items:center; margin-bottom:14px; }
+.time-row .fg { flex:1; margin-bottom:0; }
+.time-row .time-label { font-size:12px; color:var(--dim); font-weight:500; min-width:70px; }
+
+.day-toggles { display:flex; gap:6px; flex-wrap:wrap; margin-top:2px; }
+.day-btn { padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.2s; text-transform:uppercase; letter-spacing:0.3px; }
+.day-btn:hover { border-color:var(--primary-dim); color:var(--text); }
+.day-btn.active { background:var(--primary-dim); border-color:var(--primary); color:var(--primary); }
+
+/* Theme tab */
+.theme-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.theme-card { padding:14px 10px 12px; border-radius:var(--rs); background:rgba(255,255,255,0.03); border:2px solid transparent; cursor:pointer; text-align:center; transition:all 0.25s; font-family:var(--font); }
+.theme-card:hover { background:rgba(255,255,255,0.06); }
+.theme-card.active { border-color:var(--primary); background:var(--primary-dim); }
+.tp { width:32px; height:32px; border-radius:8px; margin:0 auto 6px; background:linear-gradient(135deg, var(--tp), var(--ta)); }
+.theme-card span { display:block; font-size:11px; font-weight:600; color:var(--dim); }
+
+/* Lang toggle */
+.lang-row { display:flex; gap:6px; margin-bottom:16px; }
+.lang-btn { padding:8px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.2s; }
+.lang-btn:hover { border-color:var(--primary-dim); color:var(--text); }
+.lang-btn.active { background:var(--primary-dim); border-color:var(--primary); color:var(--primary); }
+
+/* Holiday list */
+.holiday-section { margin-top:4px; }
+.hol-section-label { font-size:10px; font-weight:600; color:var(--dimmer); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.holiday-list { display:flex; flex-direction:column; gap:1px; }
+.hol-row { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:6px; transition:background 0.2s; }
+.hol-row:hover { background:rgba(255,255,255,0.03); }
+.hol-row input[type=checkbox] { width:14px; height:14px; accent-color:var(--primary); cursor:pointer; flex-shrink:0; }
+.hol-row label { font-size:12px; color:var(--dim); cursor:pointer; flex:1; }
+.hol-row.hol-disabled { opacity:0.35; pointer-events:none; }
+.hol-row input[type=date] { accent-color:var(--primary); }
+
+.modal-btns { display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
+.modal-btns button { flex:1; padding:12px; border:none; border-radius:var(--rs); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; font-family:var(--font); }
+.modal-btns .btn-pri { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; }
+.modal-btns .btn-sec { background:rgba(255,255,255,0.06); color:var(--dim); border:1px solid rgba(255,255,255,0.08); }
+.modal-btns button:hover { opacity:0.85; }
+
+/* ── Responsive ── */
+@media (max-width:880px) {
+  .dash-body { flex-direction:column; align-items:stretch; }
+  .dash-left { flex:none; width:100%; flex-direction:row; flex-wrap:wrap; gap:12px; }
+  .dash-left .clock-wrap { flex:0 0 auto; }
+  .dash-left .pcard { flex:1; min-width:200px; }
+  .dash-right { overflow-y:visible; }
+  .mc-mon-flex { flex-direction:column; gap:10px; }
+}
+
+@media (max-width:440px) {
+  #dashboard { padding:12px 12px; }
+  .dash-c { padding:0; }
+  .pcard, .ccard, .scard, .mcard { padding:10px 12px; }
+  .cd-grid { gap:4px; }
+  .cd-num { font-size:20px; }
+  .cd-item { min-width:34px; }
+  .cd-sep { font-size:14px; }
+  .pc-pct { font-size:18px; }
+  .date-row { flex-direction:column; gap:0; }
+  .time-row { flex-wrap:wrap; }
+  .theme-grid { grid-template-columns:repeat(2,1fr); }
+  .modal-inner { padding:16px; }
+  .sc-bottom { flex-direction:column; align-items:flex-start; gap:4px; }
+  .sc-live-time { font-size:16px; }
+  .dash-left { flex-direction:column; }
+  .dash-left .pcard { min-width:auto; }
+  #clockCanvas { width:160px; height:160px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-anim">
+  <div class="blob" style="background:var(--blob1)"></div>
+  <div class="blob" style="background:var(--blob2)"></div>
+  <div class="blob" style="background:var(--blob3)"></div>
+</div>
+<div class="bg-grid"></div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<!-- LOGIN -->
+<div class="screen active" id="loginScreen">
+  <div class="glass auth-card">
+    <span class="auth-icon">&#9200;</span>
+    <h1 class="auth-title" data-tkey="app.name">Stage Tracker</h1>
+    <p class="auth-sub" data-tkey="login.sub">Accedi per monitorare il tuo progresso</p>
+    <div class="fg">
+      <label data-tkey="login.username">Nome utente</label>
+      <input type="text" id="loginUser" placeholder="Il tuo nome" autocomplete="username">
+    </div>
+    <div class="fg">
+      <label data-tkey="login.password">Password</label>
+      <input type="password" id="loginPass" placeholder="********" autocomplete="current-password">
+    </div>
+    <button class="btn btn-pri" id="loginBtn" data-tkey="login.loginBtn">Accedi</button>
+    <div class="auth-err" id="loginErr"></div>
+    <button class="btn btn-ghost" id="showRegBtn"><span data-tkey="login.noAccount">Non hai un account?</span> <strong data-tkey="login.registerLink">Registrati</strong></button>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="screen" id="registerScreen">
+  <div class="glass auth-card">
+    <span class="auth-icon">&#128221;</span>
+    <h1 class="auth-title" data-tkey="register.title">Registrati</h1>
+    <p class="auth-sub" data-tkey="register.sub">Crea un account per iniziare</p>
+    <div class="fg">
+      <label data-tkey="login.username">Nome utente</label>
+      <input type="text" id="regUser" placeholder="Il tuo nome" autocomplete="username">
+    </div>
+    <div class="fg">
+      <label data-tkey="login.password">Password</label>
+      <input type="password" id="regPass" placeholder="********" autocomplete="new-password">
+    </div>
+    <div class="fg">
+      <label data-tkey="register.confirm">Conferma password</label>
+      <input type="password" id="regPass2" placeholder="********" autocomplete="new-password">
+    </div>
+    <button class="btn btn-pri" id="regBtn" data-tkey="register.registerBtn">Registrati</button>
+    <div class="auth-err" id="registerErr"></div>
+    <button class="btn btn-ghost" id="showLoginBtn"><span data-tkey="register.hasAccount">Hai già un account?</span> <strong data-tkey="register.loginLink">Accedi</strong></button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="dashboard">
+  <div class="dash-c">
+    <div class="dash-h">
+      <div class="dash-brand">
+        <div class="dash-brand-icon">&#9200;</div>
+        <span class="dash-brand-text" data-tkey="app.name">Stage Tracker</span>
+      </div>
+      <div class="dash-actions">
+        <div class="user-badge" id="userBadge">
+          <div class="user-avatar" id="userAvatar"></div>
+          <span id="userName"></span>
+        </div>
+        <button class="icon-btn" id="leaderboardBtn" title="Classifica">&#127942;</button>
+        <button class="icon-btn" id="statsBtn" title="Statistiche">&#128200;</button>
+        <button class="icon-btn" id="settingsBtn" title="Impostazioni">&#9881;</button>
+        <button class="icon-btn" id="logoutBtn" title="Esci">&#10140;</button>
+        <button class="icon-btn" id="autoStartBtn" title="Avvio automatico">&#9889;</button>
+      </div>
+    </div>
+
+    <div class="dash-body">
+      <!-- LEFT: Clock + Progress -->
+      <div class="dash-left">
+        <div class="clock-wrap">
+          <canvas id="clockCanvas" width="360" height="360"></canvas>
+        </div>
+        <div class="date-info" id="dateInfo"></div>
+
+        <div class="glass pcard">
+          <div class="pc-h">
+            <span class="pc-label" data-tkey="dash.progress">Progresso stage</span>
+            <span class="pc-pct" id="pctDisplay">0%</span>
+          </div>
+          <div class="pb-wrap">
+            <div class="pb-fill" id="pbFill"></div>
+            <div class="milestones" id="milestones">
+              <div class="milestone" data-pct="25">&#9679;</div>
+              <div class="milestone" data-pct="50">&#9679;</div>
+              <div class="milestone" data-pct="75">&#9679;</div>
+              <div class="milestone" data-pct="100">&#9679;</div>
+            </div>
+          </div>
+          <div class="pc-footer">
+            <span id="elapsedLabel">0h <span data-tkey="dash.worked">lavorate</span></span>
+            <span id="totalLabel">0h <span data-tkey="dash.total">totali</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Status + Countdowns + Monitor -->
+      <div class="dash-right">
+        <div class="glass scard" id="statusCard">
+          <div class="sc-top">
+            <div class="sc-status">
+              <span class="sc-icon" id="phaseIcon">☀️</span>
+              <span class="sc-phase" id="phaseLabel">Turno mattutino</span>
+            </div>
+            <div class="sc-today">
+              <div class="sc-today-num" id="todayNum">0h 0m</div>
+              <span class="sc-today-label" data-tkey="dash.workedToday">oggi</span>
+            </div>
+          </div>
+          <div class="sc-bar-wrap">
+            <div class="sc-bar-fill" id="todayBarFill"></div>
+          </div>
+          <div class="sc-live" id="liveSection">
+            <span class="sc-live-icon">&#9202;</span>
+            <div class="sc-live-info">
+              <div class="sc-live-label" id="liveLabel">Pausa pranzo</div>
+              <div class="sc-live-time" id="liveTime">--:--</div>
+            </div>
+          </div>
+          <div class="sc-bottom">
+            <span class="sc-remaining" id="todayRemaining">0h 0m rimanenti</span>
+          </div>
+        </div>
+
+        <div class="glass ccard">
+          <div class="ctop" data-tkey="dash.countdown">Tempo rimanente</div>
+          <div id="completedView" style="display:none">
+            <span class="cbadge" data-tkey="dash.completed">&#10003; Stage completato!</span>
+          </div>
+          <div class="cd-grid" id="countdown">
+            <div class="cd-item"><span class="cd-num" id="cdDays">00</span><span class="cd-label" data-tkey="dash.days">Giorni</span></div>
+            <span class="cd-sep">:</span>
+            <div class="cd-item"><span class="cd-num" id="cdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
+            <span class="cd-sep">:</span>
+            <div class="cd-item"><span class="cd-num" id="cdMins">00</span><span class="cd-label" data-tkey="dash.mins">Minuti</span></div>
+            <span class="cd-sep">:</span>
+            <div class="cd-item"><span class="cd-num" id="cdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Secondi</span></div>
+          </div>
+          <div class="cd-workdays-row" id="workDaysRow">
+            <div class="ctop" data-tkey="dash.workDays">Giorni lavorativi rimanenti</div>
+            <div class="cd-grid" id="wdGrid">
+              <div class="cd-item"><span class="cd-num" id="wdDays">00</span><span class="cd-label" data-tkey="dash.workDaysAbbr">Lav</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="wdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="wdMins">00</span><span class="cd-label" data-tkey="dash.mins">Min</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="wdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Sec</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass mcard" id="monitorCard">
+          <div class="mc-header">
+            <span class="mc-icon">&#128202;</span>
+            <span class="mc-label" data-tkey="monitor.title">Monitoraggio</span>
+          </div>
+          <div class="mc-mon-flex">
+            <div class="mc-monthly">
+              <span>&#128197;</span>
+              <span id="monthStats">Fine mese: -- giorni (-- lav.)</span>
+            </div>
+            <div class="mc-week-col">
+              <div class="mc-week-label" data-tkey="monitor.week">Settimana</div>
+              <div class="mc-bars" id="weekBars"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD SCREEN -->
+<div class="screen" id="leaderboardScreen">
+  <div class="dash-c">
+    <div class="scr-header">
+      <button class="scr-back" onclick="closeLeaderboard()">&#8592;</button>
+      <div>
+        <div class="scr-title" data-tkey="leaderboard.title">Classifica</div>
+        <div class="scr-sub" data-tkey="leaderboard.sub">Chi ha completato lo stage prima</div>
+      </div>
+    </div>
+    <div class="scr-body">
+      <div id="leaderboardList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS MODAL -->
+<div class="modal-overlay" id="statsModal">
+  <div class="modal-c" style="max-width:500px">
+    <div class="modal-inner">
+      <h2 data-tkey="stats.title">Statistiche</h2>
+      <p class="modal-sub" data-tkey="stats.sub">Ore lavorate nel tempo</p>
+
+      <div class="stats-summary" id="statsSummary"></div>
+
+      <div class="stats-chart-wrap">
+        <canvas id="statsTrendChart" width="800" height="280"></canvas>
+      </div>
+      <div class="stats-legend">
+        <div class="stats-legend-item"><div class="stats-legend-dot" style="background:rgba(79,140,255,0.6)"></div><span data-tkey="stats.workedHours">Ore lavorate</span></div>
+        <div class="stats-legend-item"><div class="stats-legend-dot" style="background:rgba(255,255,255,0.12)"></div><span data-tkey="stats.weeklyHours">Ore settimanali target</span></div>
+      </div>
+
+      <p style="font-size:11px;color:var(--dimmer);margin:8px 0 6px;font-weight:600" data-tkey="stats.dailyBreakdown">Giorno per giorno (questa settimana)</p>
+      <div class="stats-chart-wrap" style="max-height:180px">
+        <canvas id="statsDailyChart" width="800" height="160"></canvas>
+      </div>
+
+      <div class="modal-btns" style="margin-top:12px">
+        <button class="btn-sec" onclick="closeStats()" style="flex:1;padding:10px;border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);background:rgba(255,255,255,0.06);color:var(--dim);border:1px solid rgba(255,255,255,0.08);" data-tkey="settings.close">Chiudi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div class="screen" id="settingsScreen">
+  <div class="dash-c">
+    <div class="scr-header">
+      <button class="scr-back" onclick="closeSettings()">&#8592;</button>
+      <div>
+        <div class="scr-title" data-tkey="settings.title">Impostazioni</div>
+        <div class="scr-sub" data-tkey="settings.sub">Personalizza il tuo stage</div>
+      </div>
+    </div>
+    <div class="scr-body">
+      <!-- Language -->
+      <div class="lang-row" id="langRow">
+        <button class="lang-btn" data-lang="it">IT</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="stabs">
+        <button class="stab active" data-tab="period" data-tkey="settings.tabPeriod">Periodo</button>
+        <button class="stab" data-tab="hours" data-tkey="settings.tabHours">Orari</button>
+        <button class="stab" data-tab="holidays" data-tkey="settings.tabHolidays">Festività</button>
+        <button class="stab" data-tab="theme" data-tkey="settings.tabTheme">Tema</button>
+        <button class="stab" data-tab="clock" data-tkey="settings.tabClock">Orologio</button>
+      </div>
+
+      <!-- Period -->
+      <spanel class="active" id="spanel-period">
+        <div class="date-row">
+          <div class="fg">
+            <label data-tkey="settings.start">Data inizio</label>
+            <input type="date" id="inputStart">
+          </div>
+          <div class="fg">
+            <label data-tkey="settings.end">Data fine</label>
+            <input type="date" id="inputEnd">
+          </div>
+        </div>
+      </spanel>
+
+      <!-- Hours -->
+      <spanel id="spanel-hours">
+        <div class="time-row">
+          <span class="time-label" data-tkey="settings.morning">Mattina</span>
+          <div class="fg"><input type="time" id="inputMs" step="300"></div>
+          <span style="color:var(--dim)">—</span>
+          <div class="fg"><input type="time" id="inputMe" step="300"></div>
+        </div>
+        <div class="time-row">
+          <span class="time-label" data-tkey="settings.afternoon">Pomeriggio</span>
+          <div class="fg"><input type="time" id="inputAs" step="300"></div>
+          <span style="color:var(--dim)">—</span>
+          <div class="fg"><input type="time" id="inputAe" step="300"></div>
+        </div>
+        <div class="fg" style="margin-top:4px">
+          <label data-tkey="settings.days">Giorni lavorativi</label>
+          <div class="day-toggles" id="dayToggles">
+            <button class="day-btn" data-day="1" data-tkey="days.mon">Lun</button>
+            <button class="day-btn" data-day="2" data-tkey="days.tue">Mar</button>
+            <button class="day-btn" data-day="3" data-tkey="days.wed">Mer</button>
+            <button class="day-btn" data-day="4" data-tkey="days.thu">Gio</button>
+            <button class="day-btn" data-day="5" data-tkey="days.fri">Ven</button>
+            <button class="day-btn" data-day="6" data-tkey="days.sat">Sab</button>
+            <button class="day-btn" data-day="0" data-tkey="days.sun">Dom</button>
+          </div>
+        </div>
+      </spanel>
+
+      <!-- Holidays -->
+      <spanel id="spanel-holidays">
+        <div class="fg">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="inputEnableHolidays" checked style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
+            <span data-tkey="settings.holidaysEnable">Riconoscimento festività</span>
+          </label>
+        </div>
+        <div class="holiday-section">
+          <div class="hol-section-label" data-tkey="settings.holidaysNational">Nazionali (sempre chiuse)</div>
+          <div class="holiday-list" id="holidayListNational"></div>
+        </div>
+        <div class="holiday-section" style="margin-top:10px">
+          <div class="hol-section-label" data-tkey="settings.holidaysCompany">Aziendali (decide l'azienda)</div>
+          <div class="holiday-list" id="holidayListCompany">
+            <div class="hol-row" id="patronoRow">
+              <input type="checkbox" id="hol_patrono">
+              <label for="hol_patrono" data-tkey="holiday.patrono">Santo Patrono</label>
+              <input type="date" id="inputPatronoDate" style="width:130px;padding:4px 6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:11px;font-family:var(--font);margin-left:auto;">
+            </div>
+          </div>
+        </div>
+      </spanel>
+
+      <!-- Theme -->
+      <spanel id="spanel-theme">
+        <div class="theme-grid" id="themeGrid">
+          <button class="theme-card" data-theme="default"><div class="tp" style="--tp:#4f8cff;--ta:#a855f7"></div><span data-tkey="theme.default">Default</span></button>
+          <button class="theme-card" data-theme="emerald"><div class="tp" style="--tp:#34d399;--ta:#059669"></div><span data-tkey="theme.emerald">Smeraldo</span></button>
+          <button class="theme-card" data-theme="amber"><div class="tp" style="--tp:#fbbf24;--ta:#f97316"></div><span data-tkey="theme.amber">Ambra</span></button>
+          <button class="theme-card" data-theme="rose"><div class="tp" style="--tp:#fb7185;--ta:#e11d48"></div><span data-tkey="theme.rose">Rosa</span></button>
+          <button class="theme-card" data-theme="midnight"><div class="tp" style="--tp:#60a5fa;--ta:#818cf8"></div><span data-tkey="theme.midnight">Notte</span></button>
+          <button class="theme-card" data-theme="forest"><div class="tp" style="--tp:#4ade80;--ta:#22c55e"></div><span data-tkey="theme.forest">Foresta</span></button>
+          <button class="theme-card" data-theme="ocean"><div class="tp" style="--tp:#22d3ee;--ta:#0891b2"></div><span data-tkey="theme.ocean">Oceano</span></button>
+          <button class="theme-card" data-theme="sunset"><div class="tp" style="--tp:#fb923c;--ta:#dc2626"></div><span data-tkey="theme.sunset">Tramonto</span></button>
+          <button class="theme-card" data-theme="lavender"><div class="tp" style="--tp:#c084fc;--ta:#7c3aed"></div><span data-tkey="theme.lavender">Lavanda</span></button>
+        </div>
+      </spanel>
+
+      <!-- Clock -->
+      <spanel id="spanel-clock">
+        <div class="fg">
+          <label data-tkey="settings.clockStyle">Stile orologio</label>
+          <div class="day-toggles" id="clockTypeToggles">
+            <button class="day-btn active" data-clock="classic" data-tkey="clock.classic">Classico</button>
+            <button class="day-btn" data-clock="minimal" data-tkey="clock.minimal">Minimal</button>
+            <button class="day-btn" data-clock="modern" data-tkey="clock.modern">Moderno</button>
+            <button class="day-btn" data-clock="roman" data-tkey="clock.roman">Romano</button>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:10px">
+          <canvas id="clockPreview" width="180" height="180" style="width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.03);"></canvas>
+          <div style="font-size:11px;color:var(--dimmer);margin-top:6px" data-tkey="settings.clockPreview">Anteprima</div>
+        </div>
+      </spanel>
+
+      <div class="modal-btns" style="margin-top:20px">
+        <button class="btn-sec" id="settingsCancel" data-tkey="settings.cancel">Annulla</button>
+        <button class="btn-pri" id="settingsSave" data-tkey="settings.save">Salva</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// TRANSLATIONS
+// ══════════════════════════════════════════════
+const T = {
+  it: {
+    'app.name':'Stage Tracker',
+    'login.sub':'Accedi per monitorare il tuo progresso',
+    'login.username':'Nome utente','login.password':'Password','login.loginBtn':'Accedi',
+    'login.noAccount':'Non hai un account?','login.registerLink':'Registrati',
+    'register.title':'Registrati','register.sub':'Crea un account per iniziare',
+    'register.confirm':'Conferma password','register.registerBtn':'Registrati',
+    'register.hasAccount':'Hai già un account?','register.loginLink':'Accedi',
+    'dash.progress':'Progresso stage','dash.worked':'lavorate','dash.total':'totali','dash.workedToday':'oggi','dash.remaining':'rimanenti',
+    'dash.countdown':'Tempo rimanente','dash.completed':'Stage completato!',
+    'dash.days':'Giorni','dash.hours':'Ore','dash.mins':'Minuti','dash.secs':'Secondi','dash.workDays':'Giorni lavorativi rimanenti','dash.workDaysAbbr':'Lav',
+    'phase.before':'Non ancora iniziato','phase.morning':'Turno mattutino','phase.lunch':'In pausa pranzo','phase.afternoon':'Turno pomeridiano','phase.done':'Giornata finita','phase.weekend':'Giorno di riposo',
+    'next.morning':'Inizio turno','next.lunch':'Pausa pranzo','next.afternoon':'Ripresa','next.done':'Fine turno','next.none':'Giornata terminata',
+    'monitor.title':'Monitoraggio','monitor.week':'Settimana',
+    'notif.lunchSoon':'Pausa pranzo','notif.lunchSoonBody':'Tra 5 minuti si va in pausa!',
+    'notif.lunch':'Buon appetito!','notif.lunchBody':'Pausa pranzo iniziata. Rilassati! 🍝',
+    'notif.afternoonSoon':'Ripresa','notif.afternoonSoonBody':'Tra 5 minuti si ricomincia! Preparati.',
+    'notif.afternoon':'Buon pomeriggio!','notif.afternoonBody':'Il turno pomeridiano è iniziato.',
+    'notif.endSoon':'Fine turno','notif.endSoonBody':'Tra 5 minuti si esce!',
+    'notif.end':'Giornata finita!','notif.endBody':'Stage completato per oggi. 🎉',
+    'notif.summary':'Riepilogo giornata','notif.summaryBody':'Oggi hai lavorato {h}h {m}min — Progresso: {p}%',
+    'notif.milestone':'Traguardo!','notif.milestoneBody':'Hai completato il {p}% dello stage!',
+    'notif.weekly':'Riepilogo settimana','notif.weeklyBody':'Questa settimana hai lavorato {h}h — Media: {a}h/giorno',
+    'notif.leaderboard':'Classifica aggiornata','notif.leaderboardBody':'{u} ha completato lo stage!',
+    'settings.title':'Impostazioni','settings.sub':'Personalizza il tuo stage',
+    'settings.tabPeriod':'Periodo','settings.tabHours':'Orari','settings.tabHolidays':'Festività','settings.tabTheme':'Tema','settings.tabClock':'Orologio',
+    'settings.start':'Data inizio','settings.end':'Data fine',
+    'settings.morning':'Mattina','settings.afternoon':'Pomeriggio',
+    'settings.days':'Giorni lavorativi','settings.cancel':'Annulla','settings.save':'Salva',
+    'settings.clockStyle':'Stile orologio','settings.clockPreview':'Anteprima',
+    'settings.holidaysEnable':'Riconoscimento festività','settings.holidaysNational':'Nazionali (sempre chiuse)','settings.holidaysCompany':'Aziendali (decide l\'azienda)',
+    'days.mon':'Lun','days.tue':'Mar','days.wed':'Mer','days.thu':'Gio','days.fri':'Ven','days.sat':'Sab','days.sun':'Dom',
+    'theme.default':'Default','theme.emerald':'Smeraldo','theme.amber':'Ambra','theme.rose':'Rosa','theme.midnight':'Notte','theme.forest':'Foresta','theme.ocean':'Oceano','theme.sunset':'Tramonto','theme.lavender':'Lavanda',
+    'clock.classic':'Classico','clock.minimal':'Minimal','clock.modern':'Moderno','clock.roman':'Romano',
+    'holiday.capodanno':'Capodanno (1 Gen)','holiday.epifania':'Epifania (6 Gen)','holiday.pasquetta':'Pasquetta','holiday.liberazione':'Liberazione (25 Apr)','holiday.lavoro':'Festa del Lavoro (1 Mag)','holiday.repubblica':'Festa della Repubblica (2 Giu)','holiday.ferragosto':'Ferragosto (15 Ago)','holiday.ognissanti':'Ognissanti (1 Nov)','holiday.immacolata':'Immacolata (8 Dic)','holiday.natale':'Natale (25 Dic)','holiday.sstefano':'Santo Stefano (26 Dic)',
+    'err.fill':'Compila tutti i campi.','err.short':'Password troppo corta (min 3 caratteri).',
+    'err.nomatch':'Le password non coincidono.','err.exists':'Utente già esistente.',
+    'err.notfound':'Utente non trovato.','err.wrongpass':'Password errata.',
+    'err.dateorder':'La data fine deve essere dopo la data inizio.',
+    'leaderboard.title':'Classifica','leaderboard.sub':'Chi ha completato lo stage prima','leaderboard.empty':'Nessuno ha ancora completato lo stage','leaderboard.done':'Completato',
+    'stats.title':'Statistiche','stats.sub':'Ore lavorate nel tempo','stats.workedHours':'Ore lavorate','stats.weeklyHours':'Ore settimanali target','stats.dailyBreakdown':'Giorno per giorno (questa settimana)','stats.totalHours':'Ore totali','stats.avgWeek':'Media h/sett','stats.avgDay':'Media h/giorno','stats.workingDays':'Giorni lavorati',
+    'settings.close':'Chiudi',
+    'autostart.msg':'Per avviare Stage Tracker all\'accensione del PC:\n\n1. Premi Win + R\n2. Digita "shell:startup" e premi Invio\n3. Trascina il file Stage Tracker.lnk (o crea un collegamento a index.html) nella cartella\n\nIn alternativa se usi Chrome:\n- Apri stage tracker\n- Clicca i tre puntini ⋮ → Altri strumenti → Crea collegamento\n- Spunta "Apri come finestra"\n- Sposta il collegamento in shell:startup',
+    'autostart.confirm':'Abilitare l\'avvio automatico di Stage Tracker all\'accensione del PC?',
+    'autostart.done':'Avvio automatico abilitato con successo!',
+    'autostart.fail':'Impossibile abilitare l\'avvio automatico.',
+  },
+  en: {
+    'app.name':'Stage Tracker',
+    'login.sub':'Sign in to track your progress',
+    'login.username':'Username','login.password':'Password','login.loginBtn':'Sign In',
+    'login.noAccount':"Don't have an account?",'login.registerLink':'Register',
+    'register.title':'Register','register.sub':'Create an account to start',
+    'register.confirm':'Confirm password','register.registerBtn':'Register',
+    'register.hasAccount':'Already have an account?','register.loginLink':'Sign In',
+    'dash.progress':'Internship progress','dash.worked':'worked','dash.total':'total','dash.workedToday':'today','dash.remaining':'left',
+    'dash.countdown':'Time remaining','dash.completed':'Internship completed!',
+    'dash.days':'Days','dash.hours':'Hours','dash.mins':'Minutes','dash.secs':'Seconds','dash.workDays':'Working days remaining','dash.workDaysAbbr':'Wkd',
+    'phase.before':'Not started yet','phase.morning':'Morning shift','phase.lunch':'Lunch break','phase.afternoon':'Afternoon shift','phase.done':'Day finished','phase.weekend':'Day off',
+    'next.morning':'Start work','next.lunch':'Lunch break','next.afternoon':'Resume','next.done':'End work','next.none':'Day over',
+    'monitor.title':'Monitoring','monitor.week':'Week',
+    'notif.lunchSoon':'Lunch break','notif.lunchSoonBody':'5 minutes until lunch!',
+    'notif.lunch':'Enjoy your meal!','notif.lunchBody':'Lunch break started. Relax! 🍝',
+    'notif.afternoonSoon':'Resume','notif.afternoonSoonBody':'5 minutes until work resumes!',
+    'notif.afternoon':'Good afternoon!','notif.afternoonBody':'Afternoon shift has started.',
+    'notif.endSoon':'End of day','notif.endSoonBody':'5 minutes until the end!',
+    'notif.end':'Day finished!','notif.endBody':'Internship done for today. 🎉',
+    'settings.title':'Settings','settings.sub':'Customize your internship',
+    'settings.tabPeriod':'Period','settings.tabHours':'Hours','settings.tabHolidays':'Holidays','settings.tabTheme':'Theme','settings.tabClock':'Clock',
+    'settings.start':'Start date','settings.end':'End date',
+    'settings.morning':'Morning','settings.afternoon':'Afternoon',
+    'settings.days':'Working days','settings.cancel':'Cancel','settings.save':'Save',
+    'settings.clockStyle':'Clock style','settings.clockPreview':'Preview',
+    'settings.holidaysEnable':'Recognise holidays','settings.holidaysNational':'National (always closed)','settings.holidaysCompany':'Company (varies)',
+    'days.mon':'Mon','days.tue':'Tue','days.wed':'Wed','days.thu':'Thu','days.fri':'Fri','days.sat':'Sat','days.sun':'Sun',
+    'theme.default':'Default','theme.emerald':'Emerald','theme.amber':'Amber','theme.rose':'Rose','theme.midnight':'Midnight','theme.forest':'Forest','theme.ocean':'Ocean','theme.sunset':'Sunset','theme.lavender':'Lavender',
+    'clock.classic':'Classic','clock.minimal':'Minimal','clock.modern':'Modern','clock.roman':'Roman',
+    'holiday.capodanno':"New Year's (Jan 1)",'holiday.epifania':'Epiphany (Jan 6)','holiday.pasquetta':'Easter Monday','holiday.liberazione':'Liberation Day (Apr 25)','holiday.lavoro':"Labour Day (May 1)",'holiday.repubblica':'Republic Day (Jun 2)','holiday.ferragosto':'Ferragosto (Aug 15)','holiday.ognissanti':'All Saints (Nov 1)','holiday.immacolata':'Immaculate Conception (Dec 8)','holiday.natale':'Christmas (Dec 25)','holiday.sstefano':"St. Stephen's (Dec 26)",
+    'err.fill':'Please fill all fields.','err.short':'Password too short (min 3 chars).',
+    'err.nomatch':'Passwords do not match.','err.exists':'User already exists.',
+    'err.notfound':'User not found.','err.wrongpass':'Wrong password.',
+    'err.dateorder':'End date must be after start date.',
+    'leaderboard.title':'Leaderboard','leaderboard.sub':'Who finished the internship first','leaderboard.empty':'No one has completed their internship yet','leaderboard.done':'Done',
+    'stats.title':'Statistics','stats.sub':'Hours worked over time','stats.workedHours':'Worked','stats.weeklyHours':'Weekly target','stats.dailyBreakdown':'Day by day (this week)','stats.totalHours':'Total hours','stats.avgWeek':'Avg h/week','stats.avgDay':'Avg h/day','stats.workingDays':'Working days',
+    'notif.summary':'Day summary','notif.summaryBody':'Today you worked {h}h {m}min — Progress: {p}%',
+    'notif.milestone':'Milestone!','notif.milestoneBody':'You completed {p}% of the internship!',
+    'notif.weekly':'Weekly recap','notif.weeklyBody':'This week you worked {h}h — Avg: {a}h/day',
+    'notif.leaderboard':'Leaderboard update','notif.leaderboardBody':'{u} completed the internship!',
+    'settings.close':'Close',
+    'autostart.msg':'To start Stage Tracker automatically on boot:\n\n1. Press Win + R\n2. Type "shell:startup" and press Enter\n3. Drag a shortcut to index.html into the folder\n\nOr in Chrome:\n- Open stage tracker\n- Click ⋮ → More tools → Create shortcut\n- Check "Open as window"\n- Move the shortcut to shell:startup',
+    'autostart.confirm':'Enable auto-start for Stage Tracker on boot?',
+    'autostart.done':'Auto-start enabled successfully!',
+    'autostart.fail':'Could not enable auto-start.',
+  }
+};
+
+// ══════════════════════════════════════════════
+// THEMES
+// ══════════════════════════════════════════════
+const THEMES = {
+  default:  { p:'#4f8cff', a:'#a855f7', b1:'#4f8cff', b2:'#a855f7', b3:'#06b6d4' },
+  emerald:  { p:'#34d399', a:'#059669', b1:'#34d399', b2:'#059669', b3:'#0d9488' },
+  amber:    { p:'#fbbf24', a:'#f97316', b1:'#fbbf24', b2:'#f97316', b3:'#ea580c' },
+  rose:     { p:'#fb7185', a:'#e11d48', b1:'#fb7185', b2:'#e11d48', b3:'#be123c' },
+  midnight: { p:'#60a5fa', a:'#818cf8', b1:'#60a5fa', b2:'#818cf8', b3:'#6366f1' },
+  forest:   { p:'#4ade80', a:'#22c55e', b1:'#4ade80', b2:'#22c55e', b3:'#16a34a' },
+  ocean:    { p:'#22d3ee', a:'#0891b2', b1:'#22d3ee', b2:'#0891b2', b3:'#0e7490' },
+  sunset:   { p:'#fb923c', a:'#dc2626', b1:'#fb923c', b2:'#dc2626', b3:'#b91c1c' },
+  lavender: { p:'#c084fc', a:'#7c3aed', b1:'#c084fc', b2:'#7c3aed', b3:'#6d28d9' },
+};
+
+// ══════════════════════════════════════════════
+// ITALIAN HOLIDAYS
+// ══════════════════════════════════════════════
+const IT_HOLIDAYS = [
+  { id:'capodanno',   key:'holiday.capodanno',   month:1,  day:1,    type:'nazionale' },
+  { id:'epifania',     key:'holiday.epifania',     month:1,  day:6,    type:'nazionale' },
+  { id:'pasquetta',    key:'holiday.pasquetta',    movable:true, offset:1, type:'nazionale' },
+  { id:'liberazione',  key:'holiday.liberazione',  month:4,  day:25,   type:'nazionale' },
+  { id:'lavoro',       key:'holiday.lavoro',       month:5,  day:1,    type:'nazionale' },
+  { id:'repubblica',   key:'holiday.repubblica',   month:6,  day:2,    type:'nazionale' },
+  { id:'ferragosto',   key:'holiday.ferragosto',   month:8,  day:15,   type:'nazionale' },
+  { id:'ognissanti',   key:'holiday.ognissanti',   month:11, day:1,    type:'nazionale' },
+  { id:'immacolata',   key:'holiday.immacolata',   month:12, day:8,    type:'nazionale' },
+  { id:'natale',       key:'holiday.natale',       month:12, day:25,   type:'nazionale' },
+  { id:'sstefano',     key:'holiday.sstefano',     month:12, day:26,   type:'nazionale' },
+  { id:'patrono',      key:'holiday.patrono',      type:'aziendale', patrono:true },
+];
+
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function buildHolidaysForYear(year) {
+  const easter = easterSunday(year);
+  return IT_HOLIDAYS.map(h => {
+    if (h.patrono) {
+      if (!config.patronoDate) return { ...h, date: null };
+      const parts = config.patronoDate.split('-');
+      if (parts.length !== 3) return { ...h, date: null };
+      return { ...h, date: new Date(year, parseInt(parts[1]) - 1, parseInt(parts[2])) };
+    }
+    if (h.movable) {
+      const d = new Date(easter); d.setDate(d.getDate() + (h.offset || 0));
+      return { ...h, date: d };
+    }
+    return { ...h, date: new Date(year, h.month - 1, h.day) };
+  });
+}
+
+function isHoliday(date) {
+  if (!config.enableHolidays) return false;
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const year = d.getFullYear();
+  const holidays = buildHolidaysForYear(year);
+  return holidays.some(h => {
+    if (!h.date) return false;
+    if (config.holidays && config.holidays[h.id] === false) return false;
+    return h.date.getTime() === d.getTime();
+  });
+}
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const DB_KEY = 'stageTrackerDBv2';
+const SUPABASE_URL = 'https://akodhogcuowpgndetaca.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_RDgmoNu63LevzxOsufAMfg_6qiVEnpS';
+let supabase = null;
+let supabaseReady = false;
+
+try {
+  if (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_KEY) {
+    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseReady = true;
+    // Realtime subscription for leaderboard
+    try {
+      const channel = supabase.channel('leaderboard-changes');
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, payload => {
+        if (payload.new && payload.new.username !== currentUser) {
+          sendNotif(tr('notif.leaderboard'), tr('notif.leaderboardBody').replace('{u}', payload.new.username));
+        }
+      }).subscribe();
+    } catch(e) { console.warn('Realtime sub failed', e); }
+  }
+} catch(e) { supabaseReady = false; }
+
+let currentUser = null;
+let config = {};  // current user's config
+let startDate = null, endDate = null;
+let animPct = 0, prevTargetPct = 0;
+let hasTriggered100 = false;
+
+// ── Sync helpers ──
+function getDB() {
+  try { const r=localStorage.getItem(DB_KEY); return r?JSON.parse(r):{users:{}}; } catch { return {users:{}}; }
+}
+function saveDB(db) { try { localStorage.setItem(DB_KEY,JSON.stringify(db)); } catch {} }
+
+async function syncUserToSupabase(username, passwordHash, cfg) {
+  if (!supabaseReady) return;
+  try {
+    // Upsert user
+    await supabase.from('users').upsert({ username, password_hash: passwordHash }, { onConflict: 'username' });
+    // Upsert config
+    await supabase.from('configs').upsert({ username, config: cfg }, { onConflict: 'username' });
+  } catch(e) { /* offline, fallback to localStorage */ }
+}
+
+async function syncLeaderboardToSupabase(lb) {
+  if (!supabaseReady || !lb.length) return;
+  try {
+    const rows = lb.map(e => ({ username: e.user, completed_at: e.completedAt }));
+    await supabase.from('leaderboard').upsert(rows, { onConflict: 'username' });
+  } catch(e) {}
+}
+
+async function loadFromSupabase(username) {
+  if (!supabaseReady) return null;
+  try {
+    const { data } = await supabase.from('configs').select('config').eq('username', username).single();
+    return data ? data.config : null;
+  } catch(e) { return null; }
+}
+
+async function loadLeaderboardFromSupabase() {
+  if (!supabaseReady) return null;
+  try {
+    const { data } = await supabase.from('leaderboard').select('username, completed_at').order('completed_at');
+    if (data) return data.map(r => ({ user: r.username, completedAt: r.completed_at }));
+  } catch(e) {}
+  return null;
+}
+
+const DEFAULTS = {
+  startDate:'', endDate:'', theme:'default', language:'it', clockType:'classic',
+  morningStart:'08:30', morningEnd:'12:30', afternoonStart:'14:00', afternoonEnd:'18:00',
+  workingDays:[1,2,3,4,5], enableHolidays:true, patronoDate:'',
+  holidays:{ capodanno:true, epifania:true, pasquetta:true, liberazione:true, lavoro:true, repubblica:true, ferragosto:true, ognissanti:true, immacolata:true, natale:true, sstefano:true, patrono:true }
+};
+
+async function getConfig(username) {
+  // Try Supabase first, fall back to localStorage
+  const remote = await loadFromSupabase(username);
+  if (remote) {
+    // Store in localStorage for offline
+    const db = getDB();
+    if (!db.users[username]) db.users[username] = { password: '', config: {} };
+    db.users[username].config = remote;
+    saveDB(db);
+    return { ...DEFAULTS, ...remote };
+  }
+  const db = getDB();
+  const u = db.users[username];
+  if (!u || !u.config) return { ...DEFAULTS };
+  return { ...DEFAULTS, ...u.config };
+}
+
+async function saveUserConfig(username, cfg) {
+  const db = getDB();
+  if (!db.users[username]) db.users[username] = { password: '', config: {} };
+  db.users[username].config = cfg;
+  saveDB(db);
+  // Sync to Supabase in background
+  if (supabaseReady) {
+    const pwdHash = db.users[username].password;
+    syncUserToSupabase(username, pwdHash, cfg);
+  }
+}
+
+async function saveUserWithPassword(username, passwordHash) {
+  const db = getDB();
+  if (!db.users[username]) db.users[username] = { password: passwordHash, config: {} };
+  db.users[username].password = passwordHash;
+  saveDB(db);
+  if (supabaseReady) syncUserToSupabase(username, passwordHash, db.users[username].config);
+}
+
+// ══════════════════════════════════════════════
+// I18N
+// ══════════════════════════════════════════════
+function tr(key) {
+  const lang = config.language || 'it';
+  return (T[lang] && T[lang][key]) || (T.it[key]) || key;
+}
+
+function applyLang() {
+  document.querySelectorAll('[data-tkey]').forEach(el => {
+    const k = el.dataset.tkey;
+    el.textContent = tr(k);
+  });
+  document.querySelectorAll('[data-tkey]').forEach(el => {
+    // Re-apply for nested
+    const k = el.dataset.tkey;
+    if (el.children.length === 0 || el.dataset.tkey) {
+      el.textContent = tr(k);
+    }
+  });
+  // Day buttons
+  document.querySelectorAll('.day-btn').forEach(el => {
+    const k = el.dataset.tkey;
+    if (k) el.textContent = tr(k);
+  });
+  // Theme cards
+  document.querySelectorAll('.theme-card span').forEach(el => {
+    const k = el.dataset.tkey;
+    if (k) el.textContent = tr(k);
+  });
+  // Placeholders
+  document.getElementById('loginUser').placeholder = tr('login.username').toLowerCase() + '...';
+  document.getElementById('regUser').placeholder = tr('login.username').toLowerCase() + '...';
+}
+
+// ══════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════
+function applyTheme(name) {
+  const t = THEMES[name] || THEMES.default;
+  document.documentElement.style.setProperty('--primary', t.p);
+  document.documentElement.style.setProperty('--accent', t.a);
+  document.documentElement.style.setProperty('--blob1', t.b1);
+  document.documentElement.style.setProperty('--blob2', t.b2);
+  document.documentElement.style.setProperty('--blob3', t.b3);
+  document.documentElement.style.setProperty('--primary-dim', t.p + '22');
+  document.documentElement.style.setProperty('--accent-dim', t.a + '22');
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+async function hashPass(pwd) {
+  const enc = new TextEncoder();
+  const h = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
+  return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function handleLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  if (!u || !p) { err.textContent = tr('err.fill'); return; }
+  const db = getDB();
+  if (!db.users[u]) { err.textContent = tr('err.notfound'); return; }
+  if (await hashPass(p) !== db.users[u].password) { err.textContent = tr('err.wrongpass'); return; }
+  err.textContent = '';
+  db.currentUser = u; saveDB(db);
+  await initSession(u);
+}
+
+async function handleRegister() {
+  const u = document.getElementById('regUser').value.trim();
+  const p = document.getElementById('regPass').value;
+  const p2 = document.getElementById('regPass2').value;
+  const err = document.getElementById('registerErr');
+  if (!u || !p || !p2) { err.textContent = tr('err.fill'); return; }
+  if (p.length < 3) { err.textContent = tr('err.short'); return; }
+  if (p !== p2) { err.textContent = tr('err.nomatch'); return; }
+  const db = getDB();
+  if (db.users[u]) { err.textContent = tr('err.exists'); return; }
+  const pwdHash = await hashPass(p);
+  db.users[u] = { password: pwdHash, config: { ...DEFAULTS } };
+  db.currentUser = u; saveDB(db);
+  await saveUserWithPassword(u, pwdHash);
+  err.textContent = '';
+  await initSession(u);
+}
+
+function logout() {
+  const db = getDB();
+  db.currentUser = null; saveDB(db);
+  currentUser = null;
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+  showScreen('loginScreen');
+}
+
+async function initSession(username) {
+  currentUser = username;
+  config = await getConfig(username);
+  document.getElementById('userName').textContent = username;
+  document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+  applyTheme(config.theme);
+  applyLang();
+  showScreen('dashboard');
+  requestNotifPerm();
+  loadDates();
+  // Sync leaderboard from Supabase
+  if (supabaseReady) {
+    const remoteLB = await loadLeaderboardFromSupabase();
+    if (remoteLB && remoteLB.length) {
+      const db = getDB();
+      db.leaderboard = remoteLB;
+      saveDB(db);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS UI
+// ══════════════════════════════════════════════
+function openSettings() {
+  const c = config;
+  document.getElementById('inputStart').value = c.startDate || '';
+  document.getElementById('inputEnd').value = c.endDate || '';
+  document.getElementById('inputMs').value = c.morningStart || '08:30';
+  document.getElementById('inputMe').value = c.morningEnd || '12:30';
+  document.getElementById('inputAs').value = c.afternoonStart || '14:00';
+  document.getElementById('inputAe').value = c.afternoonEnd || '18:00';
+  document.querySelectorAll('.day-btn').forEach(b => {
+    b.classList.toggle('active', c.workingDays.includes(parseInt(b.dataset.day)));
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === c.language);
+  });
+  // Reset to first tab
+  document.querySelectorAll('.stab').forEach((t,i) => t.classList.toggle('active',i===0));
+  document.querySelectorAll('spanel').forEach(p => p.classList.remove('active'));
+  document.getElementById('spanel-period').classList.add('active');
+  // Clock type
+  document.querySelectorAll('[data-clock]').forEach(b => {
+    b.classList.toggle('active', b.dataset.clock === (c.clockType || 'classic'));
+  });
+  drawClockPreview(c.clockType || 'classic');
+  applyTheme(c.theme || 'default');
+  // Holidays
+  const master = document.getElementById('inputEnableHolidays');
+  master.checked = c.enableHolidays !== false;
+  document.getElementById('inputPatronoDate').value = c.patronoDate || '';
+  document.getElementById('hol_patrono').checked = c.holidays && c.holidays.patrono !== false;
+  // Build national holiday list
+  const natList = document.getElementById('holidayListNational');
+  natList.innerHTML = '';
+  IT_HOLIDAYS.filter(h => h.type === 'nazionale').forEach(h => {
+    const row = document.createElement('div'); row.className = 'hol-row';
+    const cb = document.createElement('input'); cb.type = 'checkbox';
+    cb.id = 'hol_' + h.id;
+    cb.checked = c.holidays && c.holidays[h.id] !== false;
+    const lbl = document.createElement('label'); lbl.htmlFor = 'hol_' + h.id;
+    lbl.textContent = tr(h.key);
+    row.appendChild(cb); row.appendChild(lbl);
+    natList.appendChild(row);
+  });
+  toggleHolidayDisabled();
+  showScreen('settingsScreen');
+}
+
+function toggleHolidayDisabled() {
+  const en = document.getElementById('inputEnableHolidays').checked;
+  document.querySelectorAll('#holidayListNational .hol-row, #holidayListCompany .hol-row').forEach(r => {
+    r.classList.toggle('hol-disabled', !en);
+    r.querySelector('input') && (r.querySelector('input').disabled = !en);
+  });
+}
+
+function closeSettings() {
+  showScreen('dashboard');
+  applyTheme(config.theme);
+}
+
+async function saveSettings() {
+  const s = document.getElementById('inputStart').value;
+  const e = document.getElementById('inputEnd').value;
+  if (e && s && e < s) { alert(tr('err.dateorder')); return; }
+  const ms = document.getElementById('inputMs').value;
+  const me = document.getElementById('inputMe').value;
+  const as = document.getElementById('inputAs').value;
+  const ae = document.getElementById('inputAe').value;
+  const days = [];
+  document.querySelectorAll('.day-btn.active').forEach(b => days.push(parseInt(b.dataset.day)));
+  if (days.length === 0) { alert('Seleziona almeno un giorno lavorativo.'); return; }
+  const theme = document.querySelector('.theme-card.active')?.dataset.theme || 'default';
+  const lang = document.querySelector('.lang-btn.active')?.dataset.lang || 'it';
+  const clockType = document.querySelector('[data-clock].active')?.dataset.clock || 'classic';
+  const enableHolidays = document.getElementById('inputEnableHolidays').checked;
+  const patronoDate = document.getElementById('inputPatronoDate').value;
+  const holidays = {};
+  IT_HOLIDAYS.forEach(h => { holidays[h.id] = document.getElementById('hol_' + h.id).checked; });
+  config = { ...config, startDate:s, endDate:e, morningStart:ms, morningEnd:me, afternoonStart:as, afternoonEnd:ae, workingDays:days, theme, language:lang, clockType, enableHolidays, patronoDate, holidays };
+  await saveUserConfig(currentUser, config);
+  applyTheme(theme);
+  applyLang();
+  closeSettings();
+  loadDates();
+}
+
+// Tab switching
+document.querySelectorAll('.stab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('spanel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('spanel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'clock') {
+      const ct = document.querySelector('[data-clock].active')?.dataset.clock || 'classic';
+      drawClockPreview(ct);
+    }
+  });
+});
+
+// Day toggles
+document.getElementById('dayToggles').addEventListener('click', e => {
+  const btn = e.target.closest('.day-btn');
+  if (!btn) return;
+  btn.classList.toggle('active');
+});
+
+// Theme selection
+document.getElementById('themeGrid').addEventListener('click', e => {
+  const card = e.target.closest('.theme-card');
+  if (!card) return;
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  applyTheme(card.dataset.theme);
+});
+
+// Language selection
+document.getElementById('langRow').addEventListener('click', e => {
+  const btn = e.target.closest('.lang-btn');
+  if (!btn) return;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+// Clock type
+document.getElementById('clockTypeToggles').addEventListener('click', e => {
+  const btn = e.target.closest('[data-clock]');
+  if (!btn) return;
+  document.querySelectorAll('[data-clock]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  drawClockPreview(btn.dataset.clock);
+});
+
+// Holidays master toggle
+document.getElementById('inputEnableHolidays').addEventListener('change', toggleHolidayDisabled);
+
+// ══════════════════════════════════════════════
+// WORKING HOURS ENGINE
+// ══════════════════════════════════════════════
+function timeToMin(str) {
+  if (!str) return 0;
+  const [h,m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function isWorkingDay(d) {
+  if (!config.workingDays.includes(d.getDay())) return false;
+  if (isHoliday(d)) return false;
+  return true;
+}
+
+function getDayMinutes() {
+  const ms = timeToMin(config.morningStart);
+  const me = timeToMin(config.morningEnd);
+  const as = timeToMin(config.afternoonStart);
+  const ae = timeToMin(config.afternoonEnd);
+  return (me - ms) + (ae - as);
+}
+
+function getMinInDay(date) {
+  const m = date.getHours() * 60 + date.getMinutes();
+  const ms = timeToMin(config.morningStart);
+  const me = timeToMin(config.morningEnd);
+  const as = timeToMin(config.afternoonStart);
+  const ae = timeToMin(config.afternoonEnd);
+  const dayMin = (me - ms) + (ae - as);
+  if (m <= ms) return 0;
+  if (m <= me) return m - ms;
+  if (m < as) return me - ms;
+  if (m <= ae) return (me - ms) + (m - as);
+  return dayMin;
+}
+
+function workingMinBetween(start, end) {
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) return 0;
+  let total = 0;
+  const cur = new Date(start); cur.setHours(0,0,0,0);
+  const stop = new Date(end); stop.setHours(0,0,0,0);
+  while (cur <= stop) {
+    if (isWorkingDay(cur)) total += dayMin;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return total;
+}
+
+function elapsedWorkingMin(start, now) {
+  if (now <= start) return 0;
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) return 0;
+  let total = 0;
+  const cur = new Date(start); cur.setHours(0,0,0,0);
+  const today = new Date(now); today.setHours(0,0,0,0);
+  while (cur <= today) {
+    if (isWorkingDay(cur)) {
+      total += (cur.getTime() === today.getTime()) ? getMinInDay(now) : dayMin;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return total;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString(config.language === 'en' ? 'en-GB' : 'it-IT', { day:'numeric', month:'long', year:'numeric' });
+}
+
+// ══════════════════════════════════════════════
+// WEEKLY MONITOR
+// ══════════════════════════════════════════════
+function getWeekDates(now) {
+  const start = new Date(now);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  start.setHours(0,0,0,0);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+function renderWeekBars(now) {
+  const days = getWeekDates(now);
+  const names = config.language === 'en'
+    ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    : ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) { document.getElementById('weekBars').innerHTML = ''; return; }
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0,0,0,0);
+
+  let html = '';
+  for (const d of days) {
+    const ds = new Date(d);
+    ds.setHours(0,0,0,0);
+    const isToday = ds.getTime() === todayStart.getTime();
+    const isFuture = ds > todayStart;
+    const isWD = config.workingDays.includes(d.getDay());
+
+    let worked = 0;
+    if (isToday) {
+      worked = getMinInDay(now);
+    } else if (!isFuture && isWD) {
+      worked = dayMin;
+    }
+
+    const pct = isWD && dayMin > 0 ? Math.min(100, (worked / dayMin) * 100) : 0;
+    const h = Math.floor(worked / 60);
+    const m = worked % 60;
+    const label = !isWD ? '—' : isFuture ? '—' : h > 0 ? h + 'h' : m > 0 ? m + 'm' : '—';
+
+    html += '<div class="mc-row">'
+      + '<span class="mc-dn">' + names[d.getDay()] + '</span>'
+      + '<div class="mc-bw"><div class="mc-bf" style="width:' + pct + '%"></div></div>'
+      + '<span class="mc-h">' + label + '</span></div>';
+  }
+  document.getElementById('weekBars').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// MONTH & LIVE COUNTDOWN
+// ══════════════════════════════════════════════
+function getMonthStats(now) {
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const diffMs = end - now;
+  const calDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  let workDays = 0;
+  const cur = new Date(tomorrow);
+  while (cur <= end) {
+    if (config.workingDays.includes(cur.getDay())) workDays++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return { calDays, workDays };
+}
+
+function getWorkDaysToEnd(now, endStage) {
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const end = new Date(endStage);
+  end.setHours(23, 59, 59, 999);
+  let count = 0;
+  const cur = new Date(tomorrow);
+  while (cur <= end) {
+    if (config.workingDays.includes(cur.getDay())) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function getRemainingWorkSeconds(now, endStage) {
+  if (now >= endStage) return 0;
+  const daySec = getDayMinutes() * 60;
+  if (daySec <= 0) return 0;
+  const nSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const ms = timeToMin(config.morningStart) * 60;
+  const me = timeToMin(config.morningEnd) * 60;
+  const as = timeToMin(config.afternoonStart) * 60;
+  const ae = timeToMin(config.afternoonEnd) * 60;
+  const today = new Date(now); today.setHours(0,0,0,0);
+  const end = new Date(endStage); end.setHours(0,0,0,0);
+  let rem = 0;
+  const cur = new Date(today);
+  while (cur <= end) {
+    if (isWorkingDay(cur)) {
+      if (cur.getTime() === end.getTime()) { rem += ae; }
+      else if (cur.getTime() === today.getTime()) {
+        if (nSec < ms) rem += ae;
+        else if (nSec < me) rem += (me - nSec) + (ae - as);
+        else if (nSec < as) rem += ae - nSec;
+        else if (nSec < ae) rem += ae - nSec;
+      } else { rem += daySec; }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return rem;
+}
+
+function getNextRemainingSec(now) {
+  const s = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const ms = timeToMin(config.morningStart) * 60;
+  const me = timeToMin(config.morningEnd) * 60;
+  const as = timeToMin(config.afternoonStart) * 60;
+  const ae = timeToMin(config.afternoonEnd) * 60;
+  const all = [ms, me, as, ae].filter(t => t > s);
+  if (all.length === 0) return null;
+  const next = all[0];
+  let labelId;
+  if (next === ms) labelId = 'next.morning';
+  else if (next === me) labelId = 'next.lunch';
+  else if (next === as) labelId = 'next.afternoon';
+  else labelId = 'next.done';
+  return { sec: next - s, labelKey: labelId };
+}
+
+function fmtSeconds(sec) {
+  if (sec == null || sec <= 0) return '00:00';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return h + ':' + pad(m) + ':' + pad(s);
+  return pad(m) + ':' + pad(s);
+}
+
+// ══════════════════════════════════════════════
+// DATES
+// ══════════════════════════════════════════════
+function loadDates() {
+  if (config.startDate && config.endDate) {
+    startDate = new Date(config.startDate + 'T' + (config.morningStart || '08:30') + ':00');
+    endDate = new Date(config.endDate + 'T' + (config.afternoonEnd || '18:00') + ':00');
+    if (isNaN(startDate) || isNaN(endDate)) { startDate=null; endDate=null; }
+  } else {
+    startDate = null; endDate = null;
+  }
+  hasTriggered100 = false;
+  updateDisplay();
+}
+
+// ══════════════════════════════════════════════
+// PHASE / TODAY STATUS
+// ══════════════════════════════════════════════
+function getPhase(now) {
+  const m = now.getHours() * 60 + now.getMinutes();
+  const ms = timeToMin(config.morningStart);
+  const me = timeToMin(config.morningEnd);
+  const as = timeToMin(config.afternoonStart);
+  const ae = timeToMin(config.afternoonEnd);
+  if (!isWorkingDay(now)) return { id:'weekend', icon:'🎉', key:'phase.weekend' };
+  if (m < ms) return { id:'before', icon:'🌅', key:'phase.before' };
+  if (m < me) return { id:'morning', icon:'☀️', key:'phase.morning' };
+  if (m < as) return { id:'lunch', icon:'🍝', key:'phase.lunch' };
+  if (m < ae) return { id:'afternoon', icon:'🌤', key:'phase.afternoon' };
+  return { id:'done', icon:'🎉', key:'phase.done' };
+}
+
+function getNextTransition(now) {
+  const m = now.getHours() * 60 + now.getMinutes();
+  const ms = timeToMin(config.morningStart);
+  const me = timeToMin(config.morningEnd);
+  const as = timeToMin(config.afternoonStart);
+  const ae = timeToMin(config.afternoonEnd);
+  const list = [
+    { t: ms, k:'next.morning' }, { t: me, k:'next.lunch' },
+    { t: as, k:'next.afternoon' }, { t: ae, k:'next.done' }
+  ];
+  for (const x of list) { if (m < x.t) return { ...x, diff: x.t - m }; }
+  return null;
+}
+
+function fmtMinutes(m) {
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h > 0) return h + 'h ' + min + 'm';
+  return min + 'm';
+}
+
+// ══════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════
+let notifTrack = { date: '' };
+let notifPermGranted = false;
+
+function requestNotifPerm() {
+  if (window.location.protocol === 'file:') return;
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(r => { notifPermGranted = r === 'granted'; });
+  } else if ('Notification' in window) {
+    notifPermGranted = Notification.permission === 'granted';
+  }
+}
+
+function sendNotif(title, body) {
+  if (notifPermGranted) {
+    try { new Notification(title, { body, icon: 'icon.png' }); } catch(e) {}
+  }
+}
+
+function sendSummaryNotif() {
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) return;
+  const now = new Date();
+  const worked = getMinInDay(now);
+  const pct = Math.round(computeProgress() * 100);
+  const h = Math.floor(worked / 60);
+  const m = worked % 60;
+  sendNotif(tr('notif.summary'), tr('notif.summaryBody').replace('{h}',h).replace('{m}',m).replace('{p}',pct));
+}
+
+function sendWeeklyNotif() {
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) return;
+  const weeks = computeWeeklyStats();
+  if (weeks.length === 0) return;
+  const cur = weeks[weeks.length - 1];
+  if (!cur) return;
+  const h = Math.round(cur.totalMins / 60 * 10) / 10;
+  const a = cur.days.length > 0 ? Math.round(cur.totalMins / cur.days.length / 60 * 10) / 10 : 0;
+  sendNotif(tr('notif.weekly'), tr('notif.weeklyBody').replace('{h}',h).replace('{a}',a));
+}
+
+let milestoneSent = new Set();
+
+function checkMilestones() {
+  const pct = Math.round(computeProgress() * 100);
+  const milestones = [25, 50, 75];
+  for (const m of milestones) {
+    if (pct >= m && !milestoneSent.has(m)) {
+      milestoneSent.add(m);
+      sendNotif(tr('notif.milestone'), tr('notif.milestoneBody').replace('{p}', m));
+    }
+  }
+}
+
+function checkNotifs(now) {
+  const today = now.toDateString();
+  if (notifTrack.date !== today) {
+    notifTrack = { date: today };
+    milestoneSent.clear();
+  }
+  if (!isWorkingDay(now)) return;
+
+  const m = now.getHours() * 60 + now.getMinutes();
+  const s = now.getSeconds();
+  const me = timeToMin(config.morningEnd);
+  const as = timeToMin(config.afternoonStart);
+  const ae = timeToMin(config.afternoonEnd);
+
+  if (s > 3) return; // only check first 3s of each minute
+
+  if (m === me - 5 && !notifTrack.wLunch)   { notifTrack.wLunch = true; sendNotif(tr('notif.lunchSoon'), tr('notif.lunchSoonBody')); }
+  if (m === me && !notifTrack.lunch)         { notifTrack.lunch = true; sendNotif(tr('notif.lunch'), tr('notif.lunchBody')); }
+  if (m === as - 5 && !notifTrack.wAfter)    { notifTrack.wAfter = true; sendNotif(tr('notif.afternoonSoon'), tr('notif.afternoonSoonBody')); }
+  if (m === as && !notifTrack.after)         { notifTrack.after = true; sendNotif(tr('notif.afternoon'), tr('notif.afternoonBody')); }
+  if (m === ae - 5 && !notifTrack.wEnd)      { notifTrack.wEnd = true; sendNotif(tr('notif.endSoon'), tr('notif.endSoonBody')); }
+  if (m === ae && !notifTrack.end)           { notifTrack.end = true; sendNotif(tr('notif.end'), tr('notif.endBody')); }
+
+  // Daily summary 1 minute after end
+  if (m === ae + 1 && !notifTrack.summary)   { notifTrack.summary = true; sendSummaryNotif(); }
+
+  // Weekly recap every Friday at afternoon end + 1
+  if (now.getDay() === 5 && m === ae + 1 && !notifTrack.weekly) { notifTrack.weekly = true; sendWeeklyNotif(); }
+
+  // Milestone check (once per minute outside the s guard)
+  if ((m === me || m === as || m === ae) && !notifTrack.mcheck) { notifTrack.mcheck = true; checkMilestones(); }
+}
+
+// ══════════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════════
+function getLeaderboard() {
+  const db = getDB();
+  return db.leaderboard || [];
+}
+
+async function computeUserProgress(username) {
+  const userCfg = await getConfig(username);
+  if (!userCfg.startDate || !userCfg.endDate) return 0;
+  const uStart = new Date(userCfg.startDate + 'T00:00:00');
+  const uEnd = new Date(userCfg.endDate + 'T00:00:00');
+  const now = new Date();
+  if (now <= uStart) return 0;
+  if (now >= uEnd) return 100;
+
+  // Duplicate logic with user's config
+  const uMs = timeToMin(userCfg.morningStart);
+  const uMe = timeToMin(userCfg.morningEnd);
+  const uAs = timeToMin(userCfg.afternoonStart);
+  const uAe = timeToMin(userCfg.afternoonEnd);
+  const dayMin = (uMe - uMs) + (uAe - uAs);
+  if (dayMin <= 0) return 0;
+
+  function isWD(d) {
+    if (!userCfg.workingDays.includes(d.getDay())) return false;
+    // holidays
+    if (!userCfg.enableHolidays) return true;
+    const dd = new Date(d); dd.setHours(0,0,0,0);
+    const yr = dd.getFullYear();
+    const east = easterSunday(yr);
+    const userHol = userCfg.holidays || {};
+    const list = IT_HOLIDAYS.map(h => {
+      if (h.patrono) {
+        if (!userCfg.patronoDate) return null;
+        const p = userCfg.patronoDate.split('-');
+        if (p.length !== 3) return null;
+        return { ...h, date: new Date(yr, parseInt(p[1])-1, parseInt(p[2])) };
+      }
+      if (h.movable) { const d2 = new Date(east); d2.setDate(d2.getDate() + (h.offset||0)); return { ...h, date: d2 }; }
+      return { ...h, date: new Date(yr, h.month-1, h.day) };
+    });
+    return !list.some(h => h && h.date && userHol[h.id] !== false && h.date.getTime() === dd.getTime());
+  }
+
+  let total = 0, elapsed = 0;
+  const cur = new Date(uStart); cur.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const stop = new Date(uEnd); stop.setHours(0,0,0,0);
+  while (cur <= stop) {
+    if (isWD(cur)) {
+      total += dayMin;
+      if (cur <= today) {
+        if (cur.getTime() === today.getTime()) {
+          const m = now.getHours()*60 + now.getMinutes();
+          elapsed += (m <= uMs ? 0 : m <= uMe ? m - uMs : m < uAs ? uMe - uMs : m <= uAe ? (uMe-uMs)+(m-uAs) : dayMin);
+        } else {
+          elapsed += dayMin;
+        }
+      }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return total > 0 ? Math.min(100, Math.round((elapsed / total) * 100)) : 0;
+}
+
+async function recordCompletion() {
+  const db = getDB();
+  if (!db.leaderboard) db.leaderboard = [];
+  const existing = db.leaderboard.find(e => e.user === currentUser);
+  if (!existing) {
+    db.leaderboard.push({ user: currentUser, completedAt: new Date().toISOString() });
+    db.leaderboard.sort((a, b) => a.completedAt.localeCompare(b.completedAt));
+    saveDB(db);
+    await syncLeaderboardToSupabase(db.leaderboard);
+  }
+}
+
+async function openLeaderboard() {
+  // Pull latest from Supabase
+  if (supabaseReady) {
+    const remoteLB = await loadLeaderboardFromSupabase();
+    if (remoteLB) {
+      const db = getDB();
+      db.leaderboard = remoteLB;
+      saveDB(db);
+    }
+  }
+  const db = getDB();
+  const lb = db.leaderboard || [];
+  const allUsers = Object.keys(db.users || {});
+  // Build entries: completed come first, then in-progress sorted by pct desc
+  const entries = [];
+  const completedMap = {};
+  lb.forEach(e => { completedMap[e.user] = e.completedAt; });
+
+  for (const u of allUsers) {
+    try {
+      const pct = await computeUserProgress(u);
+      const ca = completedMap[u];
+      entries.push({ user: u, pct, completedAt: ca || null });
+    } catch(e) {
+      entries.push({ user: u, pct: 0, completedAt: null });
+    }
+  }
+
+  // Sort: completed first (by date), then in-progress (by pct desc)
+  entries.sort((a, b) => {
+    if (a.completedAt && b.completedAt) return a.completedAt.localeCompare(b.completedAt);
+    if (a.completedAt) return -1;
+    if (b.completedAt) return 1;
+    return b.pct - a.pct;
+  });
+
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '';
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="lb-empty">' + tr('leaderboard.empty') + '</div>';
+  } else {
+    let rank = 0, prevPct = -1, prevCompleted = null;
+    entries.forEach((entry, i) => {
+      const isCompleted = !!entry.completedAt;
+      // Rank: same rank for same completion date, or same pct for in-progress
+      if (isCompleted) {
+        if (prevCompleted !== entry.completedAt) { rank = i + 1; }
+        prevCompleted = entry.completedAt;
+        prevPct = -1;
+      } else {
+        if (entry.pct !== prevPct) { rank = i + 1; }
+        prevPct = entry.pct;
+        prevCompleted = null;
+      }
+
+      const row = document.createElement('div'); row.className = 'lb-row';
+      const isMe = entry.user === currentUser;
+      let rankHtml;
+      if (rank <= 3) {
+        rankHtml = ['&#129351;','&#129352;','&#129353;'][rank - 1];
+      } else {
+        rankHtml = '#' + rank;
+      }
+      const pctDisplay = isCompleted
+        ? '<span class="lb-badge lb-badge-done" data-tkey="leaderboard.done">Completato</span>'
+        : '<span class="lb-pct">' + entry.pct + '%</span>';
+      row.innerHTML =
+        '<span class="lb-rank">' + rankHtml + '</span>' +
+        '<span class="lb-user' + (isMe ? ' lb-me' : '') + '">' + escHtml(entry.user) + '</span>' +
+        '<span class="lb-right">' + pctDisplay + '</span>';
+      list.appendChild(row);
+    });
+  }
+  applyLang();
+  showScreen('leaderboardScreen');
+}
+
+function closeLeaderboard() {
+  showScreen('dashboard');
+}
+
+function escHtml(s) { return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+// ══════════════════════════════════════════════
+// AUTO START
+// ══════════════════════════════════════════════
+async function setupAutoStart() {
+  // Try Electron IPC first
+  if (window.electronAPI && window.electronAPI.setAutoStart) {
+    const ok = confirm(tr('autostart.confirm'));
+    if (!ok) return;
+    try {
+      const result = await window.electronAPI.setAutoStart();
+      if (result) {
+        alert(tr('autostart.done'));
+      } else {
+        alert(tr('autostart.fail'));
+      }
+    } catch(e) {
+      alert(tr('autostart.fail'));
+    }
+    return;
+  }
+  // Browser fallback: show instructions
+  const msg = tr('autostart.msg');
+  alert(msg);
+}
+
+// ══════════════════════════════════════════════
+// STATS / CHARTS
+// ══════════════════════════════════════════════
+function computeWeeklyStats() {
+  if (!startDate || !endDate) return [];
+  const dayMin = getDayMinutes();
+  if (dayMin <= 0) return [];
+  const weeks = [];
+  let cur = new Date(startDate); cur.setHours(0,0,0,0);
+  // Align to Monday
+  const day = cur.getDay(); const diffToMon = (day === 0 ? -6 : 1 - day);
+  cur.setDate(cur.getDate() + diffToMon);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const stop = new Date(endDate); stop.setHours(0,0,0,0);
+  if (stop > today) stop.setTime(today.getTime());
+
+  while (cur <= stop) {
+    const weekEnd = new Date(cur); weekEnd.setDate(weekEnd.getDate() + 7);
+    const days = [];
+    let weekTotal = 0;
+    for (let d = new Date(cur); d < weekEnd && d <= stop; d.setDate(d.getDate() + 1)) {
+      const minInDay = d.getTime() === today.getTime() ? getMinInDay(new Date()) : (isWorkingDay(d) ? dayMin : 0);
+      days.push({ date: new Date(d), mins: minInDay });
+      weekTotal += minInDay;
+    }
+    weeks.push({ weekStart: new Date(cur), totalMins: weekTotal, days });
+    cur.setDate(cur.getDate() + 7);
+  }
+  return weeks;
+}
+
+function openStats() {
+  document.getElementById('statsModal').classList.add('active');
+  drawStatsCharts();
+}
+
+function closeStats() {
+  document.getElementById('statsModal').classList.remove('active');
+}
+
+function drawStatsCharts() {
+  const weeks = computeWeeklyStats();
+  const dayMin = getDayMinutes();
+  const weekTarget = dayMin * 5; // 5 working days baseline
+
+  // Summary numbers
+  let totalMins = 0, weekCount = 0, workingDays = 0;
+  weeks.forEach(w => { totalMins += w.totalMins; weekCount++; w.days.forEach(d => { if (d.mins > 0) workingDays++; }); });
+  const avgDay = workingDays > 0 ? Math.round(totalMins / workingDays) : 0;
+  const avgWeek = weekCount > 0 ? Math.round(totalMins / weekCount / 60 * 10) / 10 : 0;
+  document.getElementById('statsSummary').innerHTML =
+    '<div class="stats-summary-item"><div class="stats-summary-num">' + pad2(Math.floor(totalMins/60)) + 'h ' + pad2(totalMins%60) + 'm</div><div class="stats-summary-label" data-tkey="stats.totalHours">Ore totali</div></div>' +
+    '<div class="stats-summary-item"><div class="stats-summary-num">' + avgWeek + '</div><div class="stats-summary-label" data-tkey="stats.avgWeek">Media h/sett</div></div>' +
+    '<div class="stats-summary-item"><div class="stats-summary-num">' + pad2(Math.floor(avgDay/60)) + 'h ' + pad2(avgDay%60) + 'm</div><div class="stats-summary-label" data-tkey="stats.avgDay">Media h/giorno</div></div>' +
+    '<div class="stats-summary-item"><div class="stats-summary-num">' + workingDays + '</div><div class="stats-summary-label" data-tkey="stats.workingDays">Giorni lavorati</div></div>';
+
+  // Trend chart (weekly bars)
+  const tCanvas = document.getElementById('statsTrendChart');
+  if (tCanvas) drawBarChart(tCanvas, weeks, weekTarget);
+
+  // Daily chart (current week)
+  const dCanvas = document.getElementById('statsDailyChart');
+  if (dCanvas) drawDailyChart(dCanvas, weeks);
+}
+
+function drawBarChart(canvas, weeks, weekTarget) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const pad = { t: 8, r: 16, b: 28, l: 40 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const maxVal = Math.max(...weeks.map(w => w.totalMins), weekTarget) * 1.15;
+
+  // Y axis
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch - (ch * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '9px Inter,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal * i / 4 / 60) + 'h', pad.l - 4, y + 3);
+  }
+
+  const barW = Math.max(4, Math.min(20, (cw - weeks.length) / weeks.length));
+  const gap = Math.max(1, (cw - weeks.length * barW) / (weeks.length + 1));
+
+  weeks.forEach((w, i) => {
+    const x = pad.l + gap + i * (barW + gap);
+    const bh = (w.totalMins / maxVal) * ch;
+    const y = pad.t + ch - bh;
+
+    // Bar
+    const grad = ctx.createLinearGradient(0, y, 0, pad.t + ch);
+    grad.addColorStop(0, 'rgba(79,140,255,0.7)');
+    grad.addColorStop(1, 'rgba(79,140,255,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [2,2,0,0]); ctx.fill();
+
+    // Target line
+    if (i > 0) {
+      const tH = (weekTarget / maxVal) * ch;
+      const tY = pad.t + ch - tH;
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(pad.l, tY); ctx.lineTo(W - pad.r, tY); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Labels
+    const d = w.weekStart;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '7px Inter,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.getDate() + '/' + (d.getMonth()+1), x + barW/2, pad.t + ch + 14);
+  });
+
+  // Outline
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+  ctx.strokeRect(pad.l, pad.t, cw, ch);
+}
+
+function drawDailyChart(canvas, weeks) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const pad = { t: 6, r: 16, b: 22, l: 36 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const dayMin = getDayMinutes();
+  const maxVal = dayMin * 1.15;
+
+  // Current week
+  const now = new Date();
+  let curWeek = null;
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    const wEnd = new Date(weeks[i].weekStart); wEnd.setDate(wEnd.getDate() + 7);
+    if (now >= weeks[i].weekStart && now < wEnd) { curWeek = weeks[i]; break; }
+  }
+  if (!curWeek && weeks.length > 0) curWeek = weeks[weeks.length - 1];
+  if (!curWeek) return;
+
+  // Y axis
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch - (ch * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '8px Inter,sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxVal * i / 4 / 60) + 'h', pad.l - 4, y + 3);
+  }
+
+  const days = curWeek.days;
+  const barW = Math.max(4, Math.min(28, (cw - days.length) / days.length));
+  const gap = Math.max(2, (cw - days.length * barW) / (days.length + 1));
+
+  const dayNames = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  days.forEach((d, i) => {
+    const x = pad.l + gap + i * (barW + gap);
+    const bh = Math.min((d.mins / maxVal) * ch, ch);
+    const y = pad.t + ch - bh;
+
+    const isToday = d.date.toDateString() === now.toDateString();
+    const clr = isToday ? 'rgba(168,85,247,0.7)' : 'rgba(79,140,255,0.5)';
+    ctx.fillStyle = clr;
+    ctx.beginPath(); ctx.roundRect(x, y, barW, bh, [2,2,0,0]); ctx.fill();
+
+    ctx.fillStyle = isToday ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)';
+    ctx.font = isToday ? '700 7px Inter,sans-serif' : '7px Inter,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(dayNames[d.date.getDay()], x + barW/2, pad.t + ch + 14);
+    ctx.fillText(Math.round(d.mins / 60 * 10) / 10 + 'h', x + barW/2, y - 3);
+  });
+
+  // Target line
+  const tH = (dayMin / maxVal) * ch;
+  const tY = pad.t + ch - tH;
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(pad.l, tY); ctx.lineTo(W - pad.r, tY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.font = '7px Inter,sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(Math.round(dayMin/60*10)/10 + 'h target', W - pad.r + 2, tY + 3);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+  ctx.strokeRect(pad.l, pad.t, cw, ch);
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function computeProgress() {
+  if (!startDate || !endDate) return 0;
+  const totalMin = workingMinBetween(startDate, endDate);
+  const elapsedMin = elapsedWorkingMin(startDate, new Date());
+  return totalMin > 0 ? Math.min(1, Math.max(0, elapsedMin / totalMin)) : 0;
+}
+
+function checkAutoStart() {
+  if (window.location.protocol === 'file:') {
+    // Windows: check/create Startup shortcut via a .bat helper
+    try {
+      const fs = new ActiveXObject('Scripting.FileSystemObject');
+    } catch(e) { /* not IE */ }
+  }
+}
+
+// ══════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════
+function drawClockFace(ctx, W, H, cx, cy, R, style) {
+  // Outer glow
+  const glow = ctx.createRadialGradient(cx, cy, R - 10, cx, cy, R + 20);
+  glow.addColorStop(0, 'rgba(79,140,255,0)');
+  glow.addColorStop(0.5, 'rgba(79,140,255,0.03)');
+  glow.addColorStop(1, 'rgba(79,140,255,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, R + 20, 0, Math.PI * 2); ctx.fillStyle = glow; ctx.fill();
+
+  // Face background
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.stroke();
+
+  if (style === 'minimal') {
+    // Minimal: only 4 dots at cardinal points, no numbers, no ticks
+    for (let i = 0; i < 4; i++) {
+      const ang = (i * 90 - 90) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.arc(cx + (R - 14) * Math.cos(ang), cy + (R - 14) * Math.sin(ang), 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fill();
+    }
+  } else if (style === 'modern') {
+    // Modern: concentric rings + large dots at 12/3/6/9
+    ctx.beginPath(); ctx.arc(cx, cy, R - 6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, R - 20, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5; ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      const ang = (i * 90 - 90) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.arc(cx + (R - 10) * Math.cos(ang), cy + (R - 10) * Math.sin(ang), 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fill();
+      ctx.shadowColor = 'rgba(79,140,255,0.15)'; ctx.shadowBlur = 8;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+  } else if (style === 'roman') {
+    // Roman: numerals + decorative ticks
+    const romans = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 4;
+    for (let i = 0; i < 12; i++) {
+      const ang = (i * 30 - 90) * Math.PI / 180;
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)';
+      ctx.font = (i % 3 === 0 ? '700 ' : '500 ') + '14px \"Times New Roman\",\"Georgia\",serif';
+      ctx.fillText(romans[i], cx + (R - 34) * Math.cos(ang), cy + (R - 34) * Math.sin(ang));
+    }
+    ctx.shadowBlur = 0;
+    // Decorative dots between numerals
+    for (let i = 0; i < 12; i++) {
+      const ang = (i * 30 + 15 - 90) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.arc(cx + (R - 16) * Math.cos(ang), cy + (R - 16) * Math.sin(ang), 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fill();
+    }
+    // Inner decorative ring
+    ctx.beginPath(); ctx.arc(cx, cy, R - 48, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5; ctx.stroke();
+  } else {
+    // Classic: numbers + tick marks
+    for (let i = 0; i < 60; i++) {
+      const ang = (i * 6 - 90) * Math.PI / 180;
+      const major = i % 5 === 0;
+      const inner = major ? R - 22 : R - 13, outer = R - 6;
+      ctx.beginPath();
+      ctx.moveTo(cx + inner * Math.cos(ang), cy + inner * Math.sin(ang));
+      ctx.lineTo(cx + outer * Math.cos(ang), cy + outer * Math.sin(ang));
+      ctx.strokeStyle = major ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = major ? 2.5 : 1; ctx.lineCap = 'round'; ctx.stroke();
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.15)'; ctx.shadowBlur = 3;
+    for (let i = 1; i <= 12; i++) {
+      const ang = (i * 30 - 90) * Math.PI / 180;
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = '600 14px Inter,sans-serif';
+      ctx.fillText(i, cx + (R - 34) * Math.cos(ang), cy + (R - 34) * Math.sin(ang));
+    }
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawClockHands(ctx, cx, cy, R, style, h, m, s, ms) {
+  const ss = s + ms / 1000;
+  const ha = ((h + m / 60) * 30 - 90) * Math.PI / 180;
+  const ma = ((m + s / 60) * 6 - 90) * Math.PI / 180;
+  const sa = (ss * 6 - 90) * Math.PI / 180;
+
+  if (style === 'minimal') {
+    // Ultra-thin elegant hands
+    ctx.shadowColor = 'rgba(79,140,255,0.08)'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 55 * Math.cos(ha), cy + 55 * Math.sin(ha));
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 90 * Math.cos(ma), cy + 90 * Math.sin(ma));
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.moveTo(cx - 15 * Math.cos(sa), cy - 15 * Math.sin(sa));
+    ctx.lineTo(cx + 105 * Math.cos(sa), cy + 105 * Math.sin(sa));
+    ctx.strokeStyle = 'var(--primary)'; ctx.lineWidth = 1.2; ctx.lineCap = 'round'; ctx.stroke();
+  } else if (style === 'modern') {
+    // Bold tapered hands
+    ctx.shadowColor = 'rgba(79,140,255,0.12)'; ctx.shadowBlur = 8;
+    // Hour hand (wide)
+    ctx.beginPath();
+    ctx.moveTo(cx - 12 * Math.cos(ha), cy - 12 * Math.sin(ha));
+    ctx.lineTo(cx + 60 * Math.cos(ha + 0.03), cy + 60 * Math.sin(ha + 0.03));
+    ctx.lineTo(cx + 60 * Math.cos(ha - 0.03), cy + 60 * Math.sin(ha - 0.03));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+    // Minute hand (pointed)
+    ctx.beginPath();
+    ctx.moveTo(cx - 14 * Math.cos(ma), cy - 14 * Math.sin(ma));
+    ctx.lineTo(cx + 95 * Math.cos(ma + 0.015), cy + 95 * Math.sin(ma + 0.015));
+    ctx.lineTo(cx + 95 * Math.cos(ma - 0.015), cy + 95 * Math.sin(ma - 0.015));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Second hand with counterweight
+    ctx.shadowColor = 'var(--primary)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(cx - 18 * Math.cos(sa), cy - 18 * Math.sin(sa));
+    ctx.lineTo(cx + 108 * Math.cos(sa), cy + 108 * Math.sin(sa));
+    ctx.strokeStyle = 'var(--primary)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(cx - 18 * Math.cos(sa), cy - 18 * Math.sin(sa), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'var(--primary)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+  } else if (style === 'roman') {
+    // Classic spade-style hands
+    ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 6;
+    // Hour hand (spade shape)
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy - 8);
+    ctx.lineTo(cx + 50 * Math.cos(ha), cy + 50 * Math.sin(ha));
+    ctx.lineTo(cx + 8, cy + 8);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill();
+    // Minute hand (long spade)
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, cy - 6);
+    ctx.lineTo(cx + 85 * Math.cos(ma), cy + 85 * Math.sin(ma));
+    ctx.lineTo(cx + 6, cy + 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+    ctx.shadowBlur = 0;
+    // Second hand (thin with diamond tip)
+    ctx.shadowColor = 'rgba(79,140,255,0.2)'; ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.moveTo(cx - 10 * Math.cos(sa), cy - 10 * Math.sin(sa));
+    ctx.lineTo(cx + 100 * Math.cos(sa), cy + 100 * Math.sin(sa));
+    ctx.strokeStyle = 'var(--primary)'; ctx.lineWidth = 1.2; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else {
+    // Classic standard hands
+    ctx.shadowColor = 'rgba(79,140,255,0.2)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 70 * Math.cos(ha), cy + 70 * Math.sin(ha));
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 105 * Math.cos(ma), cy + 105 * Math.sin(ma));
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'rgba(79,140,255,0.35)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 122 * Math.cos(sa), cy + 122 * Math.sin(sa));
+    ctx.strokeStyle = 'var(--primary)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Center cap (common)
+  ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.arc(cx, cy, style === 'modern' ? 5 : style === 'minimal' ? 2.5 : 4.5, 0, Math.PI * 2);
+  ctx.fillStyle = 'var(--primary)'; ctx.fill();
+  if (style === 'modern' || style === 'roman') {
+    ctx.beginPath(); ctx.arc(cx, cy, style === 'modern' ? 2.5 : 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+  }
+}
+
+function drawClock() {
+  const c = document.getElementById('clockCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = 360, H = 360, cx = 180, cy = 180, R = 152;
+  ctx.clearRect(0, 0, W, H);
+  const now = new Date();
+  const h = now.getHours() % 12, m = now.getMinutes(), s = now.getSeconds(), ms = now.getMilliseconds();
+  const style = config.clockType || 'classic';
+  drawClockFace(ctx, W, H, cx, cy, R, style);
+  drawClockHands(ctx, cx, cy, R, style, h, m, s, ms);
+}
+
+/* ── Draw clock preview in settings modal ── */
+function drawClockPreview(style) {
+  const c = document.getElementById('clockPreview');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W=180,H=180,cx=90,cy=90,R=74;
+  ctx.clearRect(0,0,W,H);
+  const now = new Date();
+  const h=now.getHours()%12, m=now.getMinutes(), s=now.getSeconds(), ms=now.getMilliseconds();
+  drawClockFace(ctx, W, H, cx, cy, R, style);
+  const ha = ((h+m/60)*30-90)*Math.PI/180;
+  const ma = ((m+s/60)*6-90)*Math.PI/180;
+  const sa = ((s+ms/1000)*6-90)*Math.PI/180;
+
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+32*Math.cos(ha),cy+32*Math.sin(ha)); ctx.stroke();
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+48*Math.cos(ma),cy+48*Math.sin(ma)); ctx.stroke();
+  ctx.strokeStyle = 'var(--primary)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+56*Math.cos(sa),cy+56*Math.sin(sa)); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,2.5,0,Math.PI*2); ctx.fillStyle='var(--primary)'; ctx.fill();
+}
+
+// ══════════════════════════════════════════════
+// CONFETTI
+// ══════════════════════════════════════════════
+let confettiRunning = false;
+function triggerConfetti() {
+  if (confettiRunning) return;
+  confettiRunning = true;
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#4f8cff','#a855f7','#4fff96','#fbbf24','#fb7185','#06b6d4','#f97316','#34d399'];
+  const parts = [];
+  for (let i = 0; i < 150; i++) {
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    parts.push({
+      x: Math.random()*canvas.width, y: -20 - Math.random()*canvas.height*0.5,
+      w: Math.random()*8+4, h: Math.random()*6+3,
+      color: c, vy: Math.random()*3+2, vx: (Math.random()-0.5)*3,
+      rot: Math.random()*360, rotV: (Math.random()-0.5)*8,
+      osc: Math.random()*Math.PI*2, oscV: Math.random()*0.05+0.02, oscA: Math.random()*40+10
+    });
+  }
+  let frame = 0;
+  const maxF = 200;
+
+  function tick() {
+    frame++;
+    if (frame > maxF) { ctx.clearRect(0,0,canvas.width,canvas.height); confettiRunning=false; return; }
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for (const p of parts) {
+      p.y += p.vy; p.x += p.vx + Math.sin(p.osc)*0.3;
+      p.osc += p.oscV; p.vx += Math.sin(p.osc)*0.02;
+      p.rot += p.rotV;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color; ctx.globalAlpha = Math.min(1, 1 - (frame/maxF));
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// ══════════════════════════════════════════════
+// UPDATE DISPLAY
+// ══════════════════════════════════════════════
+let pctAnimeId = null;
+function animatePct(target) {
+  if (pctAnimeId) { cancelAnimationFrame(pctAnimeId); }
+  const el = document.getElementById('pctDisplay');
+  const start = animPct;
+  const dur = 700;
+  const t0 = performance.now();
+  function tick(now) {
+    const prog = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - prog, 3);
+    animPct = start + (target - start) * eased;
+    el.textContent = (animPct).toFixed(1) + '%';
+    if (prog < 1) { pctAnimeId = requestAnimationFrame(tick); }
+    else { pctAnimeId = null; animPct = target; }
+  }
+  pctAnimeId = requestAnimationFrame(tick);
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function updateDisplay() {
+  const hasDates = startDate && endDate && getDayMinutes() > 0;
+
+  // Update status card
+  const sc = document.getElementById('statusCard');
+  const now = new Date();
+
+  if (!hasDates) {
+    document.getElementById('dateInfo').innerHTML = !config.startDate || !config.endDate
+      ? '<span data-tkey="dash.noDates">' + tr('settings.tabPeriod') + '</span>'
+      : startDate && endDate
+        ? '<span>' + fmtDate(startDate) + '</span> &rarr; <span>' + fmtDate(endDate) + '</span>'
+        : '';
+    animatePct(0);
+    document.getElementById('pbFill').style.width = '0%';
+    document.getElementById('elapsedLabel').innerHTML = '0h <span data-tkey="dash.worked">' + tr('dash.worked') + '</span>';
+    document.getElementById('totalLabel').innerHTML = '0h <span data-tkey="dash.total">' + tr('dash.total') + '</span>';
+    document.getElementById('completedView').style.display = 'none';
+    document.getElementById('cdDays').textContent = '—';
+    document.getElementById('cdHours').textContent = '—';
+    document.getElementById('cdMins').textContent = '—';
+    document.getElementById('cdSecs').textContent = '—';
+    document.querySelectorAll('.milestone').forEach(m => m.classList.remove('reached'));
+    const wdr = document.getElementById('workDaysRow');
+    if (wdr) wdr.style.display = 'none';
+    if (sc) sc.style.display = 'none';
+    const mc = document.getElementById('monitorCard');
+    if (mc) mc.style.display = 'none';
+    drawClock();
+    return;
+  }
+
+  if (sc) sc.style.display = 'block';
+
+  document.getElementById('dateInfo').innerHTML =
+    '<span>' + fmtDate(startDate) + '</span> &rarr; <span>' + fmtDate(endDate) + '</span>';
+
+  const totalMin = workingMinBetween(startDate, endDate);
+  const elapsedMin = elapsedWorkingMin(startDate, now);
+  let pct = totalMin > 0 ? Math.min(100, (elapsedMin / totalMin) * 100) : 0;
+  pct = Math.max(0, pct);
+
+  animatePct(pct);
+  document.getElementById('pbFill').style.width = pct + '%';
+  document.getElementById('elapsedLabel').innerHTML = Math.floor(elapsedMin/60) + 'h <span data-tkey="dash.worked">' + tr('dash.worked') + '</span>';
+  document.getElementById('totalLabel').innerHTML = Math.floor(totalMin/60) + 'h <span data-tkey="dash.total">' + tr('dash.total') + '</span>';
+
+  // Milestones
+  document.querySelectorAll('.milestone').forEach(m => {
+    m.classList.toggle('reached', pct >= parseFloat(m.dataset.pct));
+  });
+
+  // Confetti + leaderboard on 100
+  if (pct >= 100 && !hasTriggered100) {
+    hasTriggered100 = true;
+    triggerConfetti();
+    recordCompletion();
+  }
+
+  // Countdown
+  const wdr = document.getElementById('workDaysRow');
+  const diff = endDate - now;
+  if (diff <= 0) {
+    document.getElementById('completedView').style.display = 'block';
+    document.getElementById('cdDays').textContent = '00';
+    document.getElementById('cdHours').textContent = '00';
+    document.getElementById('cdMins').textContent = '00';
+    document.getElementById('cdSecs').textContent = '00';
+    if (wdr) wdr.style.display = 'none';
+    if (!hasTriggered100) { hasTriggered100 = true; triggerConfetti(); recordCompletion(); }
+  } else {
+    document.getElementById('completedView').style.display = 'none';
+    const ts = Math.floor(diff / 1000);
+    document.getElementById('cdDays').textContent = pad(Math.floor(ts/86400));
+    document.getElementById('cdHours').textContent = pad(Math.floor((ts%86400)/3600));
+    document.getElementById('cdMins').textContent = pad(Math.floor((ts%3600)/60));
+    document.getElementById('cdSecs').textContent = pad(ts%60);
+    if (wdr) {
+      wdr.style.display = 'block';
+      const wrkSec = getRemainingWorkSeconds(now, endDate);
+      const daySec = getDayMinutes() * 60;
+      const wDays = Math.floor(wrkSec / daySec);
+      const wr = wrkSec % daySec;
+      document.getElementById('wdDays').textContent = pad(wDays);
+      document.getElementById('wdHours').textContent = pad(Math.floor(wr / 3600));
+      document.getElementById('wdMins').textContent = pad(Math.floor((wr % 3600) / 60));
+      document.getElementById('wdSecs').textContent = pad(wr % 60);
+    }
+  }
+
+  // ── Today status ──
+  const phase = getPhase(now);
+  document.getElementById('phaseIcon').textContent = phase.icon;
+  const pl = document.getElementById('phaseLabel');
+  pl.textContent = tr(phase.key);
+  pl.className = 'sc-phase' + (phase.id === 'lunch' ? ' lunch' : '') + (phase.id === 'done' ? ' done' : '');
+
+  const todayMin = getMinInDay(now);
+  const dayMin = getDayMinutes();
+  document.getElementById('todayNum').textContent = fmtMinutes(todayMin);
+  const todayPct = dayMin > 0 ? Math.min(100, (todayMin / dayMin) * 100) : 0;
+  document.getElementById('todayBarFill').style.width = todayPct + '%';
+
+  const remMin = Math.max(0, dayMin - todayMin);
+  document.getElementById('todayRemaining').textContent = fmtMinutes(remMin) + ' ' + tr('dash.remaining');
+
+  // Live countdown to next transition
+  const liveSec = getNextRemainingSec(now);
+  const liveLabel = document.getElementById('liveLabel');
+  const liveTime = document.getElementById('liveTime');
+  const liveSecEl = document.getElementById('liveSection');
+
+  if (liveSec && (phase.id === 'morning' || phase.id === 'lunch' || phase.id === 'afternoon' || phase.id === 'before')) {
+    liveSecEl.style.display = 'flex';
+    liveLabel.textContent = tr(liveSec.labelKey);
+    liveTime.textContent = fmtSeconds(liveSec.sec);
+  } else if (phase.id === 'done' || phase.id === 'weekend') {
+    liveSecEl.style.display = 'flex';
+    liveLabel.textContent = tr('phase.' + phase.id);
+    liveTime.textContent = '🎉';
+  } else {
+    liveSecEl.style.display = 'none';
+  }
+
+  // Monthly stats
+  const ms = getMonthStats(now);
+  const msEl = document.getElementById('monthStats');
+  if (ms.calDays > 0) {
+    msEl.textContent = 'Fine mese: ' + ms.calDays + ' giorni (' + ms.workDays + ' ' + tr('dash.worked') + ')';
+  } else {
+    msEl.textContent = 'Ultimo giorno del mese';
+  }
+
+  // Weekly monitoring bars
+  const mc = document.getElementById('monitorCard');
+  if (mc) { mc.style.display = (hasDates && dayMin > 0) ? 'block' : 'none'; }
+  renderWeekBars(now);
+
+  // Notifications
+  checkNotifs(now);
+
+  drawClock();
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+async function init() {
+  // Register service worker (only works on localhost or HTTPS)
+  if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      // Forward notifications through SW when page is in background
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type:'INIT' });
+      }
+    } catch (err) { console.log('SW registration skipped:', err); }
+  }
+  const db = getDB();
+  if (db.currentUser && db.users[db.currentUser]) {
+    await initSession(db.currentUser);
+  } else {
+    showScreen('loginScreen');
+  }
+}
+
+// Events
+document.getElementById('loginBtn').addEventListener('click', handleLogin);
+document.getElementById('regBtn').addEventListener('click', handleRegister);
+document.getElementById('showRegBtn').addEventListener('click', ()=>{ document.getElementById('loginErr').textContent=''; showScreen('registerScreen'); });
+document.getElementById('showLoginBtn').addEventListener('click', ()=>{ document.getElementById('registerErr').textContent=''; showScreen('loginScreen'); });
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('leaderboardBtn').addEventListener('click', openLeaderboard);
+document.getElementById('statsBtn').addEventListener('click', openStats);
+document.getElementById('autoStartBtn').addEventListener('click', setupAutoStart);
+document.getElementById('settingsBtn').addEventListener('click', openSettings);
+document.getElementById('settingsCancel').addEventListener('click', closeSettings);
+document.getElementById('settingsSave').addEventListener('click', saveSettings);
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('regPass2').addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+
+// Resize for confetti
+window.addEventListener('resize', () => {
+  const c = document.getElementById('confettiCanvas');
+  if (c) { c.width = window.innerWidth; c.height = window.innerHeight; }
+});
+
+init();
+setInterval(updateDisplay, 200);
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "name": "stage-tracker",
+  "version": "1.0.0",
+  "description": "Stage Tracker - traccia il tuo stage",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "release": "electron-builder --win --x64 --publish always"
+  },
+  "build": {
+    "appId": "com.stagetracker.app",
+    "productName": "Stage Tracker",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "preload.js",
+      "manifest.json",
+      "icon-192.svg",
+      "icon-512.svg",
+      "icon.png",
+      "sw.js"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "StageTracker-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "mimets",
+      "repo": "Clock",
+      "private": false
+    }
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.2.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-packager": "^17.1.2"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}
