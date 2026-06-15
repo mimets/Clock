@@ -4,315 +4,294 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stage Tracker</title>
-<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#08081a">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#070715;--bg2:#0c0c24;--primary:#4f8cff;--accent:#a855f7;--primary-dim:rgba(79,140,255,0.12);--accent-dim:rgba(168,85,247,0.12);--success:#4fff96;--warn:#fbbf24;--card:rgba(255,255,255,0.035);--card-border:rgba(255,255,255,0.06);--card-hover:rgba(255,255,255,0.07);--text:#ffffff;--dim:rgba(255,255,255,0.42);--dimmer:rgba(255,255,255,0.2);--radius:24px;--rs:12px;--rss:8px;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--shadow:0 8px 32px rgba(0,0,0,0.37);--glow:0 0 60px rgba(79,140,255,0.06);--blob1:#4f8cff;--blob2:#a855f7;--blob3:#06b6d4;transition:--primary .6s,--accent .6s,--bg .6s,--bg2 .6s,--blob1 .6s,--blob2 .6s,--blob3 .6s}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .6s}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:0 0}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
 
-:root {
-  --bg: #08081a;
-  --bg2: #0f0f2e;
-  --primary: #4f8cff;
-  --accent: #a855f7;
-  --primary-dim: rgba(79,140,255,0.12);
-  --accent-dim: rgba(168,85,247,0.12);
-  --success: #4fff96;
-  --card: rgba(255,255,255,0.04);
-  --card-border: rgba(255,255,255,0.07);
-  --text: #ffffff;
-  --dim: rgba(255,255,255,0.4);
-  --dimmer: rgba(255,255,255,0.2);
-  --radius: 24px;
-  --rs: 12px;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --blob1: #4f8cff;
-  --blob2: #a855f7;
-  --blob3: #06b6d4;
-  transition: --primary 0.6s, --accent 0.6s, --bg 0.6s, --bg2 0.6s, --blob1 0.6s, --blob2 0.6s, --blob3 0.6s;
+/* -- BG -- */
+.bg-anim{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.bg-anim .blob{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.08;animation:blobMove 25s ease-in-out infinite alternate}
+.bg-anim .blob:nth-child(1){width:700px;height:700px;top:-20%;left:-15%;animation-duration:30s}
+.bg-anim .blob:nth-child(2){width:550px;height:550px;bottom:-20%;right:-15%;animation-duration:25s;animation-delay:-7s}
+.bg-anim .blob:nth-child(3){width:450px;height:450px;top:35%;left:45%;animation-duration:28s;animation-delay:-14s;opacity:0.06}
+@keyframes blobMove{0%{transform:translate(0,0) scale(1)}33%{transform:translate(100px,-80px) scale(1.15)}66%{transform:translate(-80px,100px) scale(.85)}100%{transform:translate(50px,-40px) scale(1.08)}}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:64px 64px}
+.bg-dots{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,0.04) 1px,transparent 1px);background-size:32px 32px}
+
+/* -- SCREENS -- */
+.screen{display:none;position:relative;z-index:1;width:100%;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+.screen.active{display:flex}
+.glass{background:var(--card);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow),var(--glow);transition:border-color .4s,box-shadow .4s,background .4s,transform .2s}
+.glass:hover{border-color:rgba(255,255,255,0.12);box-shadow:var(--shadow),0 0 70px rgba(79,140,255,0.08)}
+.dash-widget{animation:fadeUp .5s ease both}
+.dash-widget:nth-child(2){animation-delay:.04s}
+.dash-widget:nth-child(3){animation-delay:.08s}
+.dash-widget:nth-child(4){animation-delay:.12s}
+.dash-widget:nth-child(5){animation-delay:.16s}
+.dash-widget:nth-child(6){animation-delay:.2s}
+.dash-widget:hover{transform:translateY(-1px)}
+
+/* --- AUTH --- */
+.auth-card{padding:52px 44px 44px;max-width:400px;width:100%;text-align:center;animation:fadeUp .6s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.auth-icon{font-size:56px;margin-bottom:8px;display:block}
+.auth-title{font-size:26px;font-weight:800;margin-bottom:6px;letter-spacing:-.5px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-sub{font-size:14px;color:var(--dim);margin-bottom:28px;line-height:1.5}
+.fg{text-align:left;margin-bottom:14px}
+.fg label{display:block;font-size:10px;font-weight:600;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.7px}
+.fg input{width:100%;padding:13px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:var(--rs);color:#fff;font-size:15px;font-family:var(--font);transition:border-color .25s,box-shadow .25s}
+.fg input:focus{outline:0;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-dim)}
+.fg input::placeholder{color:var(--dimmer)}
+.btn{width:100%;padding:13px;border:none;border-radius:var(--rs);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;transition:opacity .2s,transform .15s,background .4s;position:relative;overflow:hidden}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;margin-top:4px}
+.btn-pri:hover{opacity:.92;box-shadow:0 4px 24px rgba(79,140,255,0.25)}
+.btn-ghost{background:transparent;color:var(--dim);margin-top:14px;font-size:13px;font-weight:500}
+.btn-ghost:hover{color:var(--text)}
+.auth-err{font-size:13px;color:#f87171;min-height:20px;margin-top:10px}
+
+/* -- Toast -- */
+#toastContainer{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-msg{padding:10px 20px;border-radius:var(--rs);background:rgba(18,18,40,0.96);border:1px solid rgba(255,255,255,0.08);color:#e8ecf4;font-size:13px;font-weight:500;backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,0.5);animation:toastIn .3s ease;pointer-events:auto;transition:opacity .3s,transform .3s}
+.toast-out{animation:toastOut .3s ease forwards}
+@keyframes toastIn{0%{opacity:0;transform:translateY(16px) scale(.95)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes toastOut{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(16px) scale(.95)}}
+
+/* --- DASHBOARD --- */
+#dashboard{align-items:flex-start;padding:20px 28px;overflow:hidden;height:100vh}
+.dash-c{max-width:1120px;width:100%;margin:0 auto;height:100%;display:flex;flex-direction:column}
+.dash-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0;padding:0 0 14px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.dash-brand{display:flex;align-items:center;gap:10px}
+.dash-brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 20px rgba(79,140,255,0.15)}
+.dash-brand-text{font-size:17px;font-weight:800;letter-spacing:-.3px;background:linear-gradient(90deg,#fff,#a0b4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dash-version{font-size:9px;color:var(--dimmer);font-weight:600;letter-spacing:.3px;margin-left:-2px;opacity:.5}
+.dash-actions{display:flex;align-items:center;gap:6px}
+.icon-btn{width:34px;height:34px;border-radius:var(--rss);background:var(--card);border:1px solid var(--card-border);color:var(--dim);font-size:15px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;line-height:1}
+.icon-btn:hover{background:var(--card-hover);color:var(--text);border-color:rgba(255,255,255,0.12)}
+.icon-btn:active{transform:scale(.9)}
+.sync-badge{font-size:9px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s;background:rgba(79,255,150,0.12);color:var(--success);border:1px solid rgba(79,255,150,0.15)}
+.sync-badge.offline{background:rgba(255,255,255,0.04);color:var(--dimmer);border-color:rgba(255,255,255,0.06)}
+.sync-badge.error{background:rgba(255,79,79,0.1);color:#ff6b6b;border-color:rgba(255,79,79,0.15)}
+.update-banner{display:none;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-radius:var(--rs);background:linear-gradient(135deg,rgba(79,150,255,0.15),rgba(150,79,255,0.1));border:1px solid rgba(79,150,255,0.2);margin-bottom:14px;font-size:13px;flex-shrink:0}
+.update-banner-progress{display:none;align-items:center;gap:10px;flex:1}
+.update-progress-bar-wrap{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden}
+.update-progress-bar{height:100%;border-radius:2px;background:var(--primary);width:0%;transition:width .3s}
+.update-progress-text{font-size:11px;color:var(--dim);min-width:30px;text-align:right}
+.update-banner-close{font-size:18px;cursor:pointer;color:var(--dim);padding:0 4px;opacity:.6}
+#notifBar{display:none;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--rs);background:linear-gradient(135deg,rgba(79,140,255,0.15),rgba(168,85,247,0.1));border:1px solid rgba(79,140,255,0.2);margin-bottom:10px;font-size:13px;flex-shrink:0}
+#notifBar .nb-icon{font-size:18px;flex-shrink:0}
+#notifBar .nb-text{flex:1;font-weight:500}
+.update-btn{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:var(--primary);color:#fff}
+.update-btn:hover{filter:brightness(1.15)}
+.update-btn-later{background:rgba(255,255,255,0.08);color:var(--dim)}
+.user-badge{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);margin-right:4px}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 12px rgba(79,140,255,0.1)}
+
+.dash-body{position:relative;flex:1;min-height:500px}
+.dash-widget{position:absolute;overflow:hidden;border-radius:var(--rs);background:var(--card);border:1px solid var(--card-border)}
+.dash-widget .dw-inner{padding:14px 18px;height:100%;overflow-y:auto}
+.clock-wrap{display:flex;justify-content:center}
+#clockCanvas{width:220px;height:220px}
+.date-info{text-align:center;font-size:12px;color:var(--dimmer);letter-spacing:.2px;margin-top:-4px}
+.date-info span{color:var(--dim)}
+
+.pcard{padding:16px 20px;margin-bottom:0;position:relative}
+.pcard::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,var(--primary),transparent 50%,var(--accent));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.2;pointer-events:none}
+.pc-h{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}
+.pc-label{font-size:10px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.7px}
+.pc-pct{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pb-wrap{height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:visible;margin-bottom:10px;position:relative}
+.pb-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width .8s cubic-bezier(.22,1,.36,1);position:relative}
+.pb-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);animation:shimmer 2.5s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.milestones{display:flex;justify-content:space-between;position:absolute;inset:0;padding:0 2px;pointer-events:none;margin-top:-1px}
+.milestone{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.04);margin-top:-2px;display:flex;align-items:center;justify-content:center;font-size:6px}
+.milestone.reached{background:rgba(79,255,150,0.15);border-color:var(--success);box-shadow:0 0 14px rgba(79,255,150,0.15)}
+.pc-footer{display:flex;justify-content:space-between;font-size:12px;color:var(--dimmer);font-weight:500}
+.ccard{padding:14px 20px;text-align:center;margin-bottom:0}
+.ctop{font-size:9px;color:var(--dimmer);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.cd-grid{display:flex;justify-content:center;align-items:center;gap:8px}
+.cd-item{display:flex;flex-direction:column;align-items:center;min-width:40px}
+.cd-num{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;line-height:1.1;text-shadow:0 0 50px rgba(79,140,255,0.12)}
+.cd-label{font-size:7px;color:var(--dimmer);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.cd-sep{font-size:16px;color:var(--dimmer);font-weight:300;padding-bottom:8px}
+.cbadge{display:inline-block;padding:4px 16px;background:rgba(79,255,150,0.08);border:1px solid rgba(79,255,150,0.15);border-radius:20px;color:var(--success);font-size:11px;font-weight:600;letter-spacing:.3px;margin-bottom:10px}
+.cd-workdays-row{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04)}
+.cd-workdays-row .ctop{margin-bottom:8px}
+
+/* -- Status Card -- */
+.scard{padding:12px 16px;margin-bottom:0}
+.sc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sc-status{display:flex;align-items:center;gap:6px}
+.sc-icon{font-size:14px}
+.sc-phase{font-size:12px;font-weight:600}
+.sc-phase.lunch{color:#fbbf24}
+.sc-phase.done{color:var(--success)}
+.sc-today{text-align:right}
+.sc-today-num{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sc-today-label{display:block;font-size:9px;color:var(--dimmer);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:-1px}
+.sc-bar-wrap{height:4px;background:rgba(255,255,255,0.04);border-radius:2px;margin-bottom:8px;overflow:hidden}
+.sc-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.sc-bottom{display:flex;justify-content:space-between;font-size:11px}
+.sc-remaining{color:var(--dim)}
+.sc-live{display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:4px;border-top:1px solid rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.03)}
+.sc-live-icon{font-size:14px}
+.sc-live-label{font-size:10px;color:var(--dim);font-weight:500}
+.sc-live-time{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 40px rgba(79,140,255,0.1);line-height:1.2;letter-spacing:.5px}
+
+/* -- Monitor Card -- */
+.mcard{padding:12px 16px;margin-bottom:0}
+.mc-header{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.mc-icon{font-size:12px}
+.mc-label{font-size:9px;color:var(--dimmer);font-weight:600;text-transform:uppercase;letter-spacing:.7px}
+.mc-mon-flex{display:flex;gap:16px;align-items:center}
+.mc-monthly{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim);white-space:nowrap}
+.mc-monthly span:first-child{font-size:13px}
+.mc-week-col{flex:1;min-width:0}
+.mc-week-label{font-size:9px;color:var(--dimmer);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.mc-bars{display:flex;flex-direction:column;gap:3px}
+.mc-row{display:flex;align-items:center;gap:6px}
+.mc-dn{font-size:9px;color:var(--dim);font-weight:600;width:22px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.mc-bw{flex:1;height:5px;background:rgba(255,255,255,0.03);border-radius:3px;overflow:hidden}
+.mc-bf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width .6s ease}
+.mc-h{font-size:8px;color:var(--dim);font-weight:600;width:24px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* -- Screen Header -- */
+.scr-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;width:100%}
+.scr-back{width:34px;height:34px;border-radius:var(--rss);background:var(--card);border:1px solid var(--card-border);color:var(--dim);font-size:17px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.scr-back:hover{background:var(--card-hover);color:var(--text)}
+.scr-title{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.scr-sub{font-size:13px;color:var(--dim);margin-top:2px}
+.scr-body{width:100%;max-width:560px;margin:0 auto;animation:fadeUp .4s ease}
+
+/* -- Stats Modal -- */
+.stats-chart-wrap{text-align:center;margin:10px 0 14px}
+.stats-chart-wrap canvas{width:100%;height:auto;background:rgba(255,255,255,0.015);border-radius:10px}
+.stats-legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.stats-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim)}
+.stats-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.stats-summary{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:8px 0 14px}
+.stats-summary-item{text-align:center;padding:8px 16px;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
+.stats-summary-num{font-size:20px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.stats-summary-label{font-size:9px;color:var(--dimmer);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+#confettiCanvas{position:fixed;inset:0;z-index:99999;pointer-events:none}
+
+/* -- Update Overlay -- */
+#updateOverlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(7,7,21,0.95);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);flex-direction:column;gap:24px}
+#updateOverlay .uo-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:48px 56px;text-align:center;max-width:420px;box-shadow:var(--shadow)}
+#updateOverlay .uo-icon{font-size:72px;margin-bottom:8px;display:block}
+#updateOverlay .uo-text{font-size:24px;font-weight:800;letter-spacing:-.3px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#updateOverlay .uo-sub{font-size:14px;color:var(--dim);margin-top:8px}
+#updateOverlay .uo-bar-wrap{height:4px;border-radius:2px;background:rgba(255,255,255,0.05);overflow:hidden;margin-top:16px;width:100%}
+#updateOverlay .uo-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--primary),var(--accent));width:100%;animation:uoProgress 10s linear forwards}
+@keyframes uoProgress{0%{width:100%}100%{width:0%}}
+
+/* -- Leaderboard -- */
+.lb-empty{text-align:center;padding:40px 0;font-size:14px;color:var(--dimmer)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--rss);transition:all .2s}
+.lb-row:hover{background:rgba(255,255,255,0.035)}
+.lb-row+.lb-row{border-top:1px solid rgba(255,255,255,0.03)}
+.lb-rank{font-size:20px;width:30px;text-align:center;flex-shrink:0}
+.lb-user{flex:1;font-size:14px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-me{color:var(--primary)}
+.lb-right{flex-shrink:0;display:flex;align-items:center;gap:8px}
+.lb-pct{font-size:15px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.lb-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600}
+.lb-badge-done{background:rgba(79,255,150,0.1);color:var(--success)}
+
+/* --- SETTINGS --- */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal-c{background:rgba(12,12,36,0.96);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.6);animation:fadeUp .3s ease}
+.modal-inner{padding:28px 28px 24px}
+.modal-c h2{font-size:18px;font-weight:700;margin-bottom:2px}
+.modal-sub{font-size:13px;color:var(--dim);margin-bottom:20px}
+.stabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(255,255,255,0.03);border-radius:10px;padding:4px}
+.stab{flex:1;padding:8px 10px;border:none;border-radius:var(--rss);background:transparent;color:var(--dim);font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .25s;text-transform:uppercase;letter-spacing:.4px}
+.stab:hover{color:var(--text)}
+.stab.active{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+spanel{display:none}
+spanel.active{display:block;animation:fadeUp .25s ease}
+.date-row{display:flex;gap:12px}
+.date-row .fg{flex:1}
+.time-row{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.time-row .fg{flex:1;margin-bottom:0}
+.time-row .time-label{font-size:12px;color:var(--dim);font-weight:500;min-width:70px}
+.day-toggles{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.day-btn{padding:7px 12px;border-radius:var(--rss);border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--dim);font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.3px}
+.day-btn:hover{border-color:var(--primary-dim);color:var(--text)}
+.day-btn.active{background:var(--primary-dim);border-color:var(--primary);color:var(--primary)}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.theme-card{padding:12px 10px 10px;border-radius:var(--rs);background:rgba(255,255,255,0.025);border:2px solid transparent;cursor:pointer;text-align:center;transition:all .25s;font-family:var(--font)}
+.theme-card:hover{background:rgba(255,255,255,0.05)}
+.theme-card.active{border-color:var(--primary);background:var(--primary-dim)}
+.tp{width:30px;height:30px;border-radius:6px;margin:0 auto 6px;background:linear-gradient(135deg,var(--tp),var(--ta))}
+.theme-card span{display:block;font-size:11px;font-weight:600;color:var(--dim)}
+.lang-row{display:flex;gap:6px;margin-bottom:16px}
+.lang-btn{padding:7px 14px;border-radius:var(--rss);border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--dim);font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s}
+.lang-btn:hover{border-color:var(--primary-dim);color:var(--text)}
+.lang-btn.active{background:var(--primary-dim);border-color:var(--primary);color:var(--primary)}
+.holiday-section{margin-top:4px}
+.hol-section-label{font-size:10px;font-weight:600;color:var(--dimmer);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.holiday-list{display:flex;flex-direction:column;gap:1px}
+.hol-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px}
+.hol-row:hover{background:rgba(255,255,255,0.025)}
+.hol-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+.hol-row label{font-size:12px;color:var(--dim);cursor:pointer;flex:1}
+.hol-row.hol-disabled{opacity:.35;pointer-events:none}
+.modal-btns{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.04)}
+.modal-btns button{flex:1;padding:11px;border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;font-family:var(--font)}
+.modal-btns .btn-pri{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff}
+.modal-btns .btn-sec{background:rgba(255,255,255,0.05);color:var(--dim);border:1px solid rgba(255,255,255,0.06)}
+.modal-btns button:hover{opacity:.85}
+
+/* -- Changelog -- */
+#changelogOverlay .modal{background:rgba(12,12,36,0.96);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);width:100%;max-width:460px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.6);animation:fadeUp .3s ease;padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
+#changelogModal .modal-h{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#changelogModal .modal-b{font-size:13px;color:var(--dim);line-height:1.6;text-align:left;width:100%}
+#changelogModal .modal-b ul{padding-left:20px;margin:8px 0}
+#changelogModal .modal-b li{margin-bottom:6px}
+#changelogModal .btn{min-width:140px;padding:10px 28px}
+
+/* -- Follow btn -- */
+.follow-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--card-border);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0;transition:all .25s}
+.follow-btn:hover{filter:brightness(1.3);transform:scale(1.03)}
+
+/* -- Responsive -- */
+@media(max-width:880px){
+  .dash-widget{position:relative!important;width:100%!important;height:auto!important;left:auto!important;top:auto!important;margin-bottom:12px;min-height:100px}
+  .dash-body{min-height:auto}
+  .mc-mon-flex{flex-direction:column;gap:10px}
 }
-
-body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; transition:background 0.6s; }
-
-/* ── ANIMATED BG ── */
-.bg-anim { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-.bg-anim .blob { position:absolute; border-radius:50%; filter:blur(80px); opacity:0.12; animation:blobMove 20s ease-in-out infinite alternate; }
-.bg-anim .blob:nth-child(1) { width:600px; height:600px; top:-15%; left:-10%; animation-duration:25s; transition:background 0.8s; }
-.bg-anim .blob:nth-child(2) { width:500px; height:500px; bottom:-15%; right:-10%; animation-duration:20s; animation-delay:-5s; transition:background 0.8s; }
-.bg-anim .blob:nth-child(3) { width:400px; height:400px; top:40%; left:50%; animation-duration:22s; animation-delay:-10s; transition:background 0.8s; }
-@keyframes blobMove {
-  0%   { transform:translate(0,0) scale(1); }
-  33%  { transform:translate(80px,-60px) scale(1.1); }
-  66%  { transform:translate(-60px,80px) scale(0.9); }
-  100% { transform:translate(40px,-30px) scale(1.05); }
-}
-
-/* ── GRID BG ── */
-.bg-grid { position:fixed; inset:0; z-index:0; pointer-events:none;
-  background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 60px 60px; }
-
-/* ── SCREENS ── */
-.screen { display:none; position:relative; z-index:1; width:100%; min-height:100vh; align-items:center; justify-content:center; padding:20px; }
-.screen.active { display:flex; }
-
-.glass { background:var(--card); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid var(--card-border); border-radius:var(--radius); box-shadow:0 24px 80px rgba(0,0,0,0.5); }
-
-/* ═══════════ AUTH ═══════════ */
-.auth-card { padding:48px 40px 40px; max-width:400px; width:100%; text-align:center; animation:fadeUp 0.6s ease; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-.auth-icon { font-size:52px; margin-bottom:6px; display:block; }
-.auth-title { font-size:24px; font-weight:800; margin-bottom:4px; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; transition:background 0.6s; }
-.auth-sub { font-size:14px; color:var(--dim); margin-bottom:30px; }
-
-.fg { text-align:left; margin-bottom:16px; }
-.fg label { display:block; font-size:11px; font-weight:600; color:var(--dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.8px; }
-.fg input { width:100%; padding:14px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:var(--rs); color:#fff; font-size:15px; font-family:var(--font); transition:border-color 0.25s, box-shadow 0.25s; }
-.fg input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-dim); }
-.fg input::placeholder { color:var(--dimmer); }
-
-.btn { width:100%; padding:14px; border:none; border-radius:var(--rs); font-size:15px; font-weight:600; font-family:var(--font); cursor:pointer; transition:opacity 0.2s, transform 0.15s, background 0.4s; position:relative; overflow:hidden; }
-.btn:active { transform:scale(0.98); }
-.btn-pri { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; margin-top:4px; }
-.btn-pri:hover { opacity:0.9; }
-.btn-ghost { background:transparent; color:var(--dim); margin-top:14px; font-size:13px; font-weight:500; }
-.btn-ghost:hover { color:var(--text); }
-.auth-err { font-size:13px; color:#f87171; min-height:20px; margin-top:10px; transition:opacity 0.3s; }
-
-/* ═══════════ DASHBOARD ═══════════ */
-#dashboard { align-items:flex-start; padding:20px 28px; overflow:hidden; height:100vh; }
-.dash-c { max-width:1100px; width:100%; margin:0 auto; height:100%; display:flex; flex-direction:column; }
-
-.dash-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-shrink:0; }
-.dash-brand { display:flex; align-items:center; gap:10px; }
-.dash-brand-icon { width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; font-size:16px; transition:background 0.6s; }
-.dash-brand-text { font-size:18px; font-weight:800; letter-spacing:-0.3px; background:linear-gradient(90deg,#fff,#a0b4ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-.dash-actions { display:flex; align-items:center; gap:8px; }
-
-.icon-btn { width:36px; height:36px; border-radius:var(--rs); background:var(--card); border:1px solid var(--card-border); color:var(--dim); font-size:16px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; line-height:1; }
-.icon-btn:hover { background:rgba(255,255,255,0.08); color:var(--text); }
-
-.user-badge { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim); margin-right:4px; }
-.user-avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; transition:background 0.6s; }
-
-.dash-body { display:flex; gap:16px; flex:1; min-height:0; }
-.dash-left { flex:0 0 240px; display:flex; flex-direction:column; gap:12px; }
-.dash-right { flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; overflow-y:auto; }
-
-.clock-wrap { display:flex; justify-content:center; }
-#clockCanvas { width:220px; height:220px; }
-
-.date-info { text-align:center; font-size:12px; color:var(--dimmer); letter-spacing:0.2px; margin-top:-6px; }
-.date-info span { color:var(--dim); }
-
-.pcard { padding:16px 20px; margin-bottom:0; }
-.pc-h { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; }
-.pc-label { font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
-.pc-pct { font-size:28px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; transition:background 0.6s; }
-
-.pb-wrap { height:10px; background:rgba(255,255,255,0.06); border-radius:5px; overflow:visible; margin-bottom:8px; position:relative; }
-.pb-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.8s cubic-bezier(0.22,1,0.36,1),background 0.6s; position:relative; }
-.pb-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent); animation:shimmer 2s infinite; }
-@keyframes shimmer { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }
-
-.milestones { display:flex; justify-content:space-between; position:absolute; inset:0; padding:0 2px; pointer-events:none; }
-.milestone { width:14px; height:14px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.05); margin-top:-2px; display:flex; align-items:center; justify-content:center; font-size:7px; transition:all 0.4s; }
-.milestone.reached { background:rgba(79,255,150,0.2); border-color:var(--success); }
-
-.pc-footer { display:flex; justify-content:space-between; font-size:12px; color:var(--dimmer); font-weight:500; }
-
-.ccard { padding:14px 20px; text-align:center; margin-bottom:0; }
-.ctop { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:8px; }
-
-.cd-grid { display:flex; justify-content:center; align-items:center; gap:6px; }
-.cd-item { display:flex; flex-direction:column; align-items:center; min-width:42px; }
-.cd-num { font-size:26px; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; line-height:1.1; text-shadow:0 0 40px rgba(79,140,255,0.15); transition:text-shadow 0.6s; }
-.cd-label { font-size:7px; color:var(--dimmer); margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-.cd-sep { font-size:16px; color:var(--dimmer); font-weight:300; padding-bottom:8px; }
-
-.cbadge { display:inline-block; padding:4px 14px; background:rgba(79,255,150,0.1); border:1px solid rgba(79,255,150,0.2); border-radius:20px; color:var(--success); font-size:11px; font-weight:600; letter-spacing:0.3px; margin-bottom:8px; }
-
-.cd-workdays-row { margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.05); }
-.cd-workdays-row .ctop { margin-bottom:6px; }
-
-/* ── Status Card ── */
-.scard { padding:12px 16px; margin-bottom:0; }
-.sc-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-.sc-status { display:flex; align-items:center; gap:6px; }
-.sc-icon { font-size:14px; }
-.sc-phase { font-size:12px; font-weight:600; }
-.sc-phase.lunch { color:#fbbf24; }
-.sc-phase.done { color:var(--success); }
-
-.sc-today { text-align:right; }
-.sc-today-num { font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-.sc-today-label { display:block; font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-top:-1px; }
-
-.sc-bar-wrap { height:3px; background:rgba(255,255,255,0.06); border-radius:2px; margin-bottom:8px; overflow:hidden; }
-.sc-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.8s cubic-bezier(0.22,1,0.36,1); }
-
-.sc-bottom { display:flex; justify-content:space-between; font-size:11px; }
-.sc-remaining { color:var(--dim); }
-
-/* ── Live countdown section ── */
-.sc-live { display:flex; align-items:center; gap:8px; padding:5px 0; margin-bottom:4px; border-top:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.04); }
-.sc-live-icon { font-size:14px; }
-.sc-live-label { font-size:10px; color:var(--dim); font-weight:500; }
-.sc-live-time { font-size:18px; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; text-shadow:0 0 30px rgba(79,140,255,0.15); line-height:1.2; letter-spacing:0.5px; }
-
-/* ── Monitor Card ── */
-.mcard { padding:12px 16px; margin-bottom:0; }
-.mc-header { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-.mc-icon { font-size:12px; }
-.mc-label { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
-
-.mc-mon-flex { display:flex; gap:16px; align-items:center; }
-
-.mc-monthly { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); white-space:nowrap; }
-.mc-monthly span:first-child { font-size:13px; }
-
-.mc-week-col { flex:1; min-width:0; }
-
-.mc-week-label { font-size:9px; color:var(--dimmer); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
-.mc-bars { display:flex; flex-direction:column; gap:3px; }
-.mc-row { display:flex; align-items:center; gap:6px; }
-.mc-dn { font-size:9px; color:var(--dim); font-weight:600; width:22px; text-transform:uppercase; letter-spacing:0.3px; flex-shrink:0; }
-.mc-bw { flex:1; height:6px; background:rgba(255,255,255,0.04); border-radius:3px; overflow:hidden; }
-.mc-bf { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--primary),var(--accent)); width:0%; transition:width 0.6s ease; }
-.mc-h { font-size:8px; color:var(--dim); font-weight:600; width:24px; text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0; }
-
-/* ── Screen Header (for leaderboard/settings pages) ── */
-.scr-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; width:100%; }
-.scr-back { width:36px; height:36px; border-radius:var(--rs); background:var(--card); border:1px solid var(--card-border); color:var(--dim); font-size:18px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.scr-back:hover { background:rgba(255,255,255,0.08); color:var(--text); }
-.scr-title { font-size:20px; font-weight:800; }
-.scr-sub { font-size:12px; color:var(--dim); margin-top:1px; }
-.scr-body { width:100%; max-width:560px; margin:0 auto; animation:fadeUp 0.4s ease; }
-
-/* ── Stats Modal ── */
-.stats-chart-wrap { text-align:center; margin:8px 0 12px; }
-.stats-chart-wrap canvas { width:100%; height:auto; background:rgba(255,255,255,0.02); border-radius:10px; }
-.stats-legend { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
-.stats-legend-item { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--dim); }
-.stats-legend-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
-.stats-summary { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:8px 0 12px; }
-.stats-summary-item { text-align:center; padding:6px 14px; background:rgba(255,255,255,0.03); border-radius:8px; }
-.stats-summary-num { font-size:18px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
-.stats-summary-label { font-size:9px; color:var(--dimmer); text-transform:uppercase; letter-spacing:0.4px; margin-top:1px; }
-
-/* ── Confetti canvas ── */
-#confettiCanvas { position:fixed; inset:0; z-index:9999; pointer-events:none; }
-
-/* ── Leaderboard ── */
-.lb-empty { text-align:center; padding:30px 0; font-size:14px; color:var(--dimmer); }
-.lb-row { display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:8px; transition:background 0.2s; }
-.lb-row:hover { background:rgba(255,255,255,0.03); }
-.lb-row + .lb-row { border-top:1px solid rgba(255,255,255,0.04); }
-.lb-rank { font-size:18px; width:28px; text-align:center; flex-shrink:0; }
-.lb-user { flex:1; font-size:14px; font-weight:600; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.lb-me { color:var(--primary); }
-.lb-right { flex-shrink:0; }
-.lb-pct { font-size:14px; font-weight:800; color:var(--accent); font-variant-numeric:tabular-nums; }
-.lb-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
-.lb-badge-done { background:rgba(79,255,150,0.12); color:var(--success); }
-
-/* ═══════════ SETTINGS MODAL ═══════════ */
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); z-index:100; align-items:center; justify-content:center; padding:20px; }
-.modal-overlay.active { display:flex; }
-
-.modal-c { background:#11112e; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); width:100%; max-width:440px; max-height:90vh; overflow-y:auto; box-shadow:0 24px 80px rgba(0,0,0,0.6); animation:fadeUp 0.3s ease; transition:background 0.6s; }
-.modal-inner { padding:28px 28px 24px; }
-
-.modal-c h2 { font-size:18px; font-weight:700; margin-bottom:2px; }
-.modal-sub { font-size:13px; color:var(--dim); margin-bottom:20px; }
-
-/* Tabs */
-.stabs { display:flex; gap:4px; margin-bottom:20px; background:rgba(255,255,255,0.04); border-radius:10px; padding:4px; }
-.stab { flex:1; padding:9px 12px; border:none; border-radius:8px; background:transparent; color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.25s; text-transform:uppercase; letter-spacing:0.5px; }
-.stab:hover { color:var(--text); }
-.stab.active { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; box-shadow:0 4px 16px rgba(0,0,0,0.3); }
-
-spanel { display:none; }
-spanel.active { display:block; animation:fadeUp 0.25s ease; }
-
-/* Period tab */
-.date-row { display:flex; gap:12px; }
-.date-row .fg { flex:1; }
-
-/* Hours tab */
-.time-row { display:flex; gap:12px; align-items:center; margin-bottom:14px; }
-.time-row .fg { flex:1; margin-bottom:0; }
-.time-row .time-label { font-size:12px; color:var(--dim); font-weight:500; min-width:70px; }
-
-.day-toggles { display:flex; gap:6px; flex-wrap:wrap; margin-top:2px; }
-.day-btn { padding:8px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.2s; text-transform:uppercase; letter-spacing:0.3px; }
-.day-btn:hover { border-color:var(--primary-dim); color:var(--text); }
-.day-btn.active { background:var(--primary-dim); border-color:var(--primary); color:var(--primary); }
-
-/* Theme tab */
-.theme-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.theme-card { padding:14px 10px 12px; border-radius:var(--rs); background:rgba(255,255,255,0.03); border:2px solid transparent; cursor:pointer; text-align:center; transition:all 0.25s; font-family:var(--font); }
-.theme-card:hover { background:rgba(255,255,255,0.06); }
-.theme-card.active { border-color:var(--primary); background:var(--primary-dim); }
-.tp { width:32px; height:32px; border-radius:8px; margin:0 auto 6px; background:linear-gradient(135deg, var(--tp), var(--ta)); }
-.theme-card span { display:block; font-size:11px; font-weight:600; color:var(--dim); }
-
-/* Lang toggle */
-.lang-row { display:flex; gap:6px; margin-bottom:16px; }
-.lang-btn { padding:8px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--dim); font-size:12px; font-weight:600; font-family:var(--font); cursor:pointer; transition:all 0.2s; }
-.lang-btn:hover { border-color:var(--primary-dim); color:var(--text); }
-.lang-btn.active { background:var(--primary-dim); border-color:var(--primary); color:var(--primary); }
-
-/* Holiday list */
-.holiday-section { margin-top:4px; }
-.hol-section-label { font-size:10px; font-weight:600; color:var(--dimmer); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
-.holiday-list { display:flex; flex-direction:column; gap:1px; }
-.hol-row { display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:6px; transition:background 0.2s; }
-.hol-row:hover { background:rgba(255,255,255,0.03); }
-.hol-row input[type=checkbox] { width:14px; height:14px; accent-color:var(--primary); cursor:pointer; flex-shrink:0; }
-.hol-row label { font-size:12px; color:var(--dim); cursor:pointer; flex:1; }
-.hol-row.hol-disabled { opacity:0.35; pointer-events:none; }
-.hol-row input[type=date] { accent-color:var(--primary); }
-
-.modal-btns { display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
-.modal-btns button { flex:1; padding:12px; border:none; border-radius:var(--rs); font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; font-family:var(--font); }
-.modal-btns .btn-pri { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; }
-.modal-btns .btn-sec { background:rgba(255,255,255,0.06); color:var(--dim); border:1px solid rgba(255,255,255,0.08); }
-.modal-btns button:hover { opacity:0.85; }
-
-/* ── Responsive ── */
-@media (max-width:880px) {
-  .dash-body { flex-direction:column; align-items:stretch; }
-  .dash-left { flex:none; width:100%; flex-direction:row; flex-wrap:wrap; gap:12px; }
-  .dash-left .clock-wrap { flex:0 0 auto; }
-  .dash-left .pcard { flex:1; min-width:200px; }
-  .dash-right { overflow-y:visible; }
-  .mc-mon-flex { flex-direction:column; gap:10px; }
-}
-
-@media (max-width:440px) {
-  #dashboard { padding:12px 12px; }
-  .dash-c { padding:0; }
-  .pcard, .ccard, .scard, .mcard { padding:10px 12px; }
-  .cd-grid { gap:4px; }
-  .cd-num { font-size:20px; }
-  .cd-item { min-width:34px; }
-  .cd-sep { font-size:14px; }
-  .pc-pct { font-size:18px; }
-  .date-row { flex-direction:column; gap:0; }
-  .time-row { flex-wrap:wrap; }
-  .theme-grid { grid-template-columns:repeat(2,1fr); }
-  .modal-inner { padding:16px; }
-  .sc-bottom { flex-direction:column; align-items:flex-start; gap:4px; }
-  .sc-live-time { font-size:16px; }
-  .dash-left { flex-direction:column; }
-  .dash-left .pcard { min-width:auto; }
-  #clockCanvas { width:160px; height:160px; }
+@media(max-width:440px){
+  #dashboard{padding:12px}
+  .dash-c{padding:0}
+  .dash-actions{gap:4px}
+  .icon-btn{width:30px;height:30px;font-size:13px}
+  .pcard,.ccard,.scard,.mcard{padding:10px 12px}
+  .cd-grid{gap:4px}
+  .cd-num{font-size:20px}
+  .cd-item{min-width:34px}
+  .cd-sep{font-size:14px}
+  .pc-pct{font-size:20px}
+  .date-row{flex-direction:column;gap:0}
+  .time-row{flex-wrap:wrap}
+  .theme-grid{grid-template-columns:repeat(2,1fr)}
+  .modal-inner{padding:16px}
+  .sc-bottom{flex-direction:column;align-items:flex-start;gap:4px}
+  .sc-live-time{font-size:16px}
+  #clockCanvas{width:160px;height:160px}
 }
 </style>
 </head>
@@ -324,8 +303,10 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
   <div class="blob" style="background:var(--blob3)"></div>
 </div>
 <div class="bg-grid"></div>
+<div class="bg-dots"></div>
 
 <canvas id="confettiCanvas"></canvas>
+<div id="toastContainer"></div>
 
 <!-- LOGIN -->
 <div class="screen active" id="loginScreen">
@@ -343,6 +324,11 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
     </div>
     <button class="btn btn-pri" id="loginBtn" data-tkey="login.loginBtn">Accedi</button>
     <div class="auth-err" id="loginErr"></div>
+    <div id="syncErr" class="auth-err" style="display:none;font-size:11px;color:var(--warn)"></div>
+    <div class="auth-retry" id="retryBar" style="display:none">
+      <span data-tkey="sync.error"></span>
+      <button class="btn btn-ghost" id="retryBtn" style="font-size:11px;padding:2px 8px" data-tkey="sync.retry">Riprova</button>
+    </div>
     <button class="btn btn-ghost" id="showRegBtn"><span data-tkey="login.noAccount">Non hai un account?</span> <strong data-tkey="login.registerLink">Registrati</strong></button>
   </div>
 </div>
@@ -367,7 +353,7 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
     </div>
     <button class="btn btn-pri" id="regBtn" data-tkey="register.registerBtn">Registrati</button>
     <div class="auth-err" id="registerErr"></div>
-    <button class="btn btn-ghost" id="showLoginBtn"><span data-tkey="register.hasAccount">Hai già un account?</span> <strong data-tkey="register.loginLink">Accedi</strong></button>
+    <button class="btn btn-ghost" id="showLoginBtn"><span data-tkey="register.hasAccount">Hai gi� un account?</span> <strong data-tkey="register.loginLink">Accedi</strong></button>
   </div>
 </div>
 
@@ -378,118 +364,155 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
       <div class="dash-brand">
         <div class="dash-brand-icon">&#9200;</div>
         <span class="dash-brand-text" data-tkey="app.name">Stage Tracker</span>
+        <span class="dash-version">v1.0.15</span>
       </div>
       <div class="dash-actions">
         <div class="user-badge" id="userBadge">
           <div class="user-avatar" id="userAvatar"></div>
           <span id="userName"></span>
         </div>
+        <span class="sync-badge" id="syncBadge" title="Sync">&#10003;</span>
         <button class="icon-btn" id="leaderboardBtn" title="Classifica">&#127942;</button>
+        <button class="icon-btn" id="chatBtn" title="Chat">&#128172;</button>
         <button class="icon-btn" id="statsBtn" title="Statistiche">&#128200;</button>
         <button class="icon-btn" id="settingsBtn" title="Impostazioni">&#9881;</button>
+        <button class="icon-btn" id="addCdBtn" title="Aggiungi countdown">&#9200;</button>
         <button class="icon-btn" id="logoutBtn" title="Esci">&#10140;</button>
         <button class="icon-btn" id="autoStartBtn" title="Avvio automatico">&#9889;</button>
+        <button class="icon-btn" id="checkUpdatesBtn" title="Verifica aggiornamenti">&#128259;</button>
       </div>
     </div>
 
-    <div class="dash-body">
-      <!-- LEFT: Clock + Progress -->
-      <div class="dash-left">
-        <div class="clock-wrap">
-          <canvas id="clockCanvas" width="360" height="360"></canvas>
+    <div class="update-banner" id="updateBanner" style="display:none">
+      <span id="updateBannerText">&#11088; <span data-tkey="update.available">Nuova versione disponibile</span></span>
+      <div class="update-banner-progress" id="updateProgress" style="display:none">
+        <div class="update-progress-bar-wrap">
+          <div class="update-progress-bar" id="updateProgressBar"></div>
         </div>
-        <div class="date-info" id="dateInfo"></div>
+        <span id="updateProgressText">0%</span>
+      </div>
+      <span class="update-banner-close" id="updateBannerClose">&times;</span>
+    </div>
 
-        <div class="glass pcard">
-          <div class="pc-h">
-            <span class="pc-label" data-tkey="dash.progress">Progresso stage</span>
-            <span class="pc-pct" id="pctDisplay">0%</span>
+    <div id="notifBar"></div>
+
+    <div class="dash-body" id="dashBody">
+      <!-- Widget: Clock -->
+      <div class="glass dash-widget" data-widget-id="clock">
+        <div class="dw-inner">
+          <div class="clock-wrap">
+            <canvas id="clockCanvas" width="360" height="360"></canvas>
           </div>
-          <div class="pb-wrap">
-            <div class="pb-fill" id="pbFill"></div>
-            <div class="milestones" id="milestones">
-              <div class="milestone" data-pct="25">&#9679;</div>
-              <div class="milestone" data-pct="50">&#9679;</div>
-              <div class="milestone" data-pct="75">&#9679;</div>
-              <div class="milestone" data-pct="100">&#9679;</div>
+          <div class="date-info" id="dateInfo"></div>
+        </div>
+      </div>
+
+      <!-- Widget: Progress -->
+      <div class="glass dash-widget" data-widget-id="progress">
+        <div class="dw-inner">
+          <div class="pcard" style="padding:0;background:none;border:none;box-shadow:none">
+            <div class="pc-h">
+              <span class="pc-label" data-tkey="dash.progress">Progresso stage</span>
+              <span class="pc-pct" id="pctDisplay">0%</span>
+            </div>
+            <div class="pb-wrap">
+              <div class="pb-fill" id="pbFill"></div>
+              <div class="milestones" id="milestones">
+                <div class="milestone" data-pct="25">&#9679;</div>
+                <div class="milestone" data-pct="50">&#9679;</div>
+                <div class="milestone" data-pct="75">&#9679;</div>
+                <div class="milestone" data-pct="100">&#9679;</div>
+              </div>
+            </div>
+            <div class="pc-footer">
+              <span id="elapsedLabel">0h <span data-tkey="dash.worked">lavorate</span></span>
+              <span id="totalLabel">0h <span data-tkey="dash.total">totali</span></span>
             </div>
           </div>
-          <div class="pc-footer">
-            <span id="elapsedLabel">0h <span data-tkey="dash.worked">lavorate</span></span>
-            <span id="totalLabel">0h <span data-tkey="dash.total">totali</span></span>
+        </div>
+              </div>
+
+      <!-- Widget: Status -->
+      <div class="glass dash-widget" data-widget-id="status">
+        <div class="dw-inner">
+          <div class="scard" id="statusCard" style="padding:0;background:none;border:none;box-shadow:none">
+            <div class="sc-top">
+              <div class="sc-status">
+                <span class="sc-icon" id="phaseIcon">??</span>
+                <span class="sc-phase" id="phaseLabel">Turno mattutino</span>
+              </div>
+              <div class="sc-today">
+                <div class="sc-today-num" id="todayNum">0h 0m</div>
+                <span class="sc-today-label" data-tkey="dash.workedToday">oggi</span>
+              </div>
+            </div>
+            <div class="sc-bar-wrap">
+              <div class="sc-bar-fill" id="todayBarFill"></div>
+            </div>
+            <div class="sc-live" id="liveSection">
+              <span class="sc-live-icon">&#9202;</span>
+              <div class="sc-live-info">
+                <div class="sc-live-label" id="liveLabel">Pausa pranzo</div>
+                <div class="sc-live-time" id="liveTime">--:--</div>
+              </div>
+            </div>
+            <div class="sc-bottom">
+              <span class="sc-remaining" id="todayRemaining">0h 0m rimanenti</span>
+            </div>
+          </div>
+        </div>
+              </div>
+
+      <!-- Widget: Countdown -->
+      <div class="glass dash-widget" data-widget-id="countdown" style="text-align:center">
+        <div class="dw-inner">
+          <div class="ccard" style="padding:0;background:none;border:none;box-shadow:none">
+            <div class="ctop" data-tkey="dash.countdown">Tempo rimanente</div>
+            <div id="completedView" style="display:none">
+              <span class="cbadge" data-tkey="dash.completed">&#10003; Stage completato!</span>
+            </div>
+            <div class="cd-grid" id="countdown">
+              <div class="cd-item"><span class="cd-num" id="cdDays">00</span><span class="cd-label" data-tkey="dash.days">Giorni</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="cdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="cdMins">00</span><span class="cd-label" data-tkey="dash.mins">Minuti</span></div>
+              <span class="cd-sep">:</span>
+              <div class="cd-item"><span class="cd-num" id="cdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Secondi</span></div>
+            </div>
+            <div class="cd-workdays-row" id="workDaysRow">
+              <div class="ctop" data-tkey="dash.workDays">Giorni lavorativi rimanenti</div>
+              <div class="cd-grid" id="wdGrid">
+                <div class="cd-item"><span class="cd-num" id="wdDays">00</span><span class="cd-label" data-tkey="dash.workDaysAbbr">Lav</span></div>
+                <span class="cd-sep">:</span>
+                <div class="cd-item"><span class="cd-num" id="wdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
+                <span class="cd-sep">:</span>
+                <div class="cd-item"><span class="cd-num" id="wdMins">00</span><span class="cd-label" data-tkey="dash.mins">Min</span></div>
+                <span class="cd-sep">:</span>
+                <div class="cd-item"><span class="cd-num" id="wdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Sec</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Status + Countdowns + Monitor -->
-      <div class="dash-right">
-        <div class="glass scard" id="statusCard">
-          <div class="sc-top">
-            <div class="sc-status">
-              <span class="sc-icon" id="phaseIcon">☀️</span>
-              <span class="sc-phase" id="phaseLabel">Turno mattutino</span>
+      <!-- Widget: Monitor -->
+      <div class="glass dash-widget" data-widget-id="monitor">
+        <div class="dw-inner">
+          <div class="mcard" id="monitorCard" style="padding:0;background:none;border:none;box-shadow:none">
+            <div class="mc-header">
+              <span class="mc-icon">&#128202;</span>
+              <span class="mc-label" data-tkey="monitor.title">Monitoraggio</span>
             </div>
-            <div class="sc-today">
-              <div class="sc-today-num" id="todayNum">0h 0m</div>
-              <span class="sc-today-label" data-tkey="dash.workedToday">oggi</span>
-            </div>
-          </div>
-          <div class="sc-bar-wrap">
-            <div class="sc-bar-fill" id="todayBarFill"></div>
-          </div>
-          <div class="sc-live" id="liveSection">
-            <span class="sc-live-icon">&#9202;</span>
-            <div class="sc-live-info">
-              <div class="sc-live-label" id="liveLabel">Pausa pranzo</div>
-              <div class="sc-live-time" id="liveTime">--:--</div>
-            </div>
-          </div>
-          <div class="sc-bottom">
-            <span class="sc-remaining" id="todayRemaining">0h 0m rimanenti</span>
-          </div>
-        </div>
-
-        <div class="glass ccard">
-          <div class="ctop" data-tkey="dash.countdown">Tempo rimanente</div>
-          <div id="completedView" style="display:none">
-            <span class="cbadge" data-tkey="dash.completed">&#10003; Stage completato!</span>
-          </div>
-          <div class="cd-grid" id="countdown">
-            <div class="cd-item"><span class="cd-num" id="cdDays">00</span><span class="cd-label" data-tkey="dash.days">Giorni</span></div>
-            <span class="cd-sep">:</span>
-            <div class="cd-item"><span class="cd-num" id="cdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
-            <span class="cd-sep">:</span>
-            <div class="cd-item"><span class="cd-num" id="cdMins">00</span><span class="cd-label" data-tkey="dash.mins">Minuti</span></div>
-            <span class="cd-sep">:</span>
-            <div class="cd-item"><span class="cd-num" id="cdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Secondi</span></div>
-          </div>
-          <div class="cd-workdays-row" id="workDaysRow">
-            <div class="ctop" data-tkey="dash.workDays">Giorni lavorativi rimanenti</div>
-            <div class="cd-grid" id="wdGrid">
-              <div class="cd-item"><span class="cd-num" id="wdDays">00</span><span class="cd-label" data-tkey="dash.workDaysAbbr">Lav</span></div>
-              <span class="cd-sep">:</span>
-              <div class="cd-item"><span class="cd-num" id="wdHours">00</span><span class="cd-label" data-tkey="dash.hours">Ore</span></div>
-              <span class="cd-sep">:</span>
-              <div class="cd-item"><span class="cd-num" id="wdMins">00</span><span class="cd-label" data-tkey="dash.mins">Min</span></div>
-              <span class="cd-sep">:</span>
-              <div class="cd-item"><span class="cd-num" id="wdSecs">00</span><span class="cd-label" data-tkey="dash.secs">Sec</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass mcard" id="monitorCard">
-          <div class="mc-header">
-            <span class="mc-icon">&#128202;</span>
-            <span class="mc-label" data-tkey="monitor.title">Monitoraggio</span>
-          </div>
-          <div class="mc-mon-flex">
-            <div class="mc-monthly">
-              <span>&#128197;</span>
-              <span id="monthStats">Fine mese: -- giorni (-- lav.)</span>
-            </div>
-            <div class="mc-week-col">
-              <div class="mc-week-label" data-tkey="monitor.week">Settimana</div>
-              <div class="mc-bars" id="weekBars"></div>
+            <div class="mc-mon-flex">
+              <div class="mc-monthly">
+                <span>&#128197;</span>
+                <span id="monthStats">Fine mese: -- giorni (-- lav.)</span>
+              </div>
+              <div class="mc-week-col">
+                <div class="mc-week-label" data-tkey="monitor.week">Settimana</div>
+                <div class="mc-bars" id="weekBars"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -564,7 +587,7 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
       <div class="stabs">
         <button class="stab active" data-tab="period" data-tkey="settings.tabPeriod">Periodo</button>
         <button class="stab" data-tab="hours" data-tkey="settings.tabHours">Orari</button>
-        <button class="stab" data-tab="holidays" data-tkey="settings.tabHolidays">Festività</button>
+        <button class="stab" data-tab="holidays" data-tkey="settings.tabHolidays">Festivit�</button>
         <button class="stab" data-tab="theme" data-tkey="settings.tabTheme">Tema</button>
         <button class="stab" data-tab="clock" data-tkey="settings.tabClock">Orologio</button>
       </div>
@@ -588,13 +611,13 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
         <div class="time-row">
           <span class="time-label" data-tkey="settings.morning">Mattina</span>
           <div class="fg"><input type="time" id="inputMs" step="300"></div>
-          <span style="color:var(--dim)">—</span>
+          <span style="color:var(--dim)">�</span>
           <div class="fg"><input type="time" id="inputMe" step="300"></div>
         </div>
         <div class="time-row">
           <span class="time-label" data-tkey="settings.afternoon">Pomeriggio</span>
           <div class="fg"><input type="time" id="inputAs" step="300"></div>
-          <span style="color:var(--dim)">—</span>
+          <span style="color:var(--dim)">�</span>
           <div class="fg"><input type="time" id="inputAe" step="300"></div>
         </div>
         <div class="fg" style="margin-top:4px">
@@ -616,7 +639,7 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
         <div class="fg">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="inputEnableHolidays" checked style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
-            <span data-tkey="settings.holidaysEnable">Riconoscimento festività</span>
+            <span data-tkey="settings.holidaysEnable">Riconoscimento festivit�</span>
           </label>
         </div>
         <div class="holiday-section">
@@ -675,10 +698,31 @@ spanel.active { display:block; animation:fadeUp 0.25s ease; }
   </div>
 </div>
 
+<!-- CHAT SCREEN -->
+<div class="screen" id="chatScreen">
+  <div class="dash-c">
+    <div class="scr-header">
+      <button class="scr-back" onclick="closeChat()">&#8592;</button>
+      <div>
+        <div class="scr-title" data-tkey="chat.title">Chat</div>
+        <div class="scr-sub" data-tkey="chat.sub"></div>
+      </div>
+    </div>
+    <div class="scr-body" style="display:flex;flex-direction:column;height:calc(100vh - 160px);max-width:560px;">
+      <div id="chatMessagesList" style="flex:1;overflow-y:auto;margin-bottom:12px;padding:12px;border-radius:var(--rs);background:rgba(255,255,255,0.02);border:1px solid var(--card-border);display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="chatInput" placeholder="Scrivi un messaggio..." style="flex:1;padding:12px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:var(--rs);color:#fff;font-size:14px;font-family:var(--font);">
+        <button class="btn btn-pri" id="chatSendBtn" style="width:auto;padding:12px 20px;flex-shrink:0;" data-tkey="chat.send">Invia</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // TRANSLATIONS
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 const T = {
   it: {
     'app.name':'Stage Tracker',
@@ -687,45 +731,51 @@ const T = {
     'login.noAccount':'Non hai un account?','login.registerLink':'Registrati',
     'register.title':'Registrati','register.sub':'Crea un account per iniziare',
     'register.confirm':'Conferma password','register.registerBtn':'Registrati',
-    'register.hasAccount':'Hai già un account?','register.loginLink':'Accedi',
+    'register.hasAccount':'Hai gi� un account?','register.loginLink':'Accedi',
     'dash.progress':'Progresso stage','dash.worked':'lavorate','dash.total':'totali','dash.workedToday':'oggi','dash.remaining':'rimanenti',
+    'sync.ok':'Sincronizzato','sync.offline':'Non connesso','sync.error':'Errore di sincronizzazione','sync.retry':'Riprova',
     'dash.countdown':'Tempo rimanente','dash.completed':'Stage completato!',
     'dash.days':'Giorni','dash.hours':'Ore','dash.mins':'Minuti','dash.secs':'Secondi','dash.workDays':'Giorni lavorativi rimanenti','dash.workDaysAbbr':'Lav',
     'phase.before':'Non ancora iniziato','phase.morning':'Turno mattutino','phase.lunch':'In pausa pranzo','phase.afternoon':'Turno pomeridiano','phase.done':'Giornata finita','phase.weekend':'Giorno di riposo',
     'next.morning':'Inizio turno','next.lunch':'Pausa pranzo','next.afternoon':'Ripresa','next.done':'Fine turno','next.none':'Giornata terminata',
     'monitor.title':'Monitoraggio','monitor.week':'Settimana',
     'notif.lunchSoon':'Pausa pranzo','notif.lunchSoonBody':'Tra 5 minuti si va in pausa!',
-    'notif.lunch':'Buon appetito!','notif.lunchBody':'Pausa pranzo iniziata. Rilassati! 🍝',
+    'notif.morning':'Buon lavoro!','notif.morningBody':'Il turno mattutino � iniziato. Forza!',
+    'notif.lunch':'Buon appetito!','notif.lunchBody':'Pausa pranzo iniziata. Rilassati!',
     'notif.afternoonSoon':'Ripresa','notif.afternoonSoonBody':'Tra 5 minuti si ricomincia! Preparati.',
-    'notif.afternoon':'Buon pomeriggio!','notif.afternoonBody':'Il turno pomeridiano è iniziato.',
+    'notif.afternoon':'Buon pomeriggio!','notif.afternoonBody':'Il turno pomeridiano � iniziato.',
     'notif.endSoon':'Fine turno','notif.endSoonBody':'Tra 5 minuti si esce!',
-    'notif.end':'Giornata finita!','notif.endBody':'Stage completato per oggi. 🎉',
-    'notif.summary':'Riepilogo giornata','notif.summaryBody':'Oggi hai lavorato {h}h {m}min — Progresso: {p}%',
+    'notif.end':'Giornata finita!','notif.endBody':'Stage completato per oggi. ??',
+    'notif.summary':'Riepilogo giornata','notif.summaryBody':'Oggi hai lavorato {h}h {m}min � Progresso: {p}%',
     'notif.milestone':'Traguardo!','notif.milestoneBody':'Hai completato il {p}% dello stage!',
-    'notif.weekly':'Riepilogo settimana','notif.weeklyBody':'Questa settimana hai lavorato {h}h — Media: {a}h/giorno',
+    'notif.weekly':'Riepilogo settimana','notif.weeklyBody':'Questa settimana hai lavorato {h}h � Media: {a}h/giorno',
     'notif.leaderboard':'Classifica aggiornata','notif.leaderboardBody':'{u} ha completato lo stage!',
     'settings.title':'Impostazioni','settings.sub':'Personalizza il tuo stage',
-    'settings.tabPeriod':'Periodo','settings.tabHours':'Orari','settings.tabHolidays':'Festività','settings.tabTheme':'Tema','settings.tabClock':'Orologio',
+    'update.available':'Nuova versione disponibile','update.download':'Scarica ora','update.later':'Pi\u00f9 tardi','update.progress':'Scaricamento','update.downloaded':'Installazione pronta','update.checking':'Verifica aggiornamenti in corso...','update.none':'Gi\u00e0 all\'ultima versione','update.error':'Errore durante la verifica aggiornamenti','changelog.title':'Novit\u00e0 dell\'aggiornamento','changelog.btn':'Continua','restart':'Riavvia ora','restart.delay':'Riavvio tra {s}s',
+    'settings.tabPeriod':'Periodo','settings.tabHours':'Orari','settings.tabHolidays':'Festivit�','settings.tabTheme':'Tema','settings.tabClock':'Orologio',
     'settings.start':'Data inizio','settings.end':'Data fine',
     'settings.morning':'Mattina','settings.afternoon':'Pomeriggio',
     'settings.days':'Giorni lavorativi','settings.cancel':'Annulla','settings.save':'Salva',
     'settings.clockStyle':'Stile orologio','settings.clockPreview':'Anteprima',
-    'settings.holidaysEnable':'Riconoscimento festività','settings.holidaysNational':'Nazionali (sempre chiuse)','settings.holidaysCompany':'Aziendali (decide l\'azienda)',
+    'settings.saved':'Impostazioni salvate!',
+    'settings.holidaysEnable':'Riconoscimento festivit�','settings.holidaysNational':'Nazionali (sempre chiuse)','settings.holidaysCompany':'Aziendali (decide l\'azienda)',
     'days.mon':'Lun','days.tue':'Mar','days.wed':'Mer','days.thu':'Gio','days.fri':'Ven','days.sat':'Sab','days.sun':'Dom',
     'theme.default':'Default','theme.emerald':'Smeraldo','theme.amber':'Ambra','theme.rose':'Rosa','theme.midnight':'Notte','theme.forest':'Foresta','theme.ocean':'Oceano','theme.sunset':'Tramonto','theme.lavender':'Lavanda',
     'clock.classic':'Classico','clock.minimal':'Minimal','clock.modern':'Moderno','clock.roman':'Romano',
     'holiday.capodanno':'Capodanno (1 Gen)','holiday.epifania':'Epifania (6 Gen)','holiday.pasquetta':'Pasquetta','holiday.liberazione':'Liberazione (25 Apr)','holiday.lavoro':'Festa del Lavoro (1 Mag)','holiday.repubblica':'Festa della Repubblica (2 Giu)','holiday.ferragosto':'Ferragosto (15 Ago)','holiday.ognissanti':'Ognissanti (1 Nov)','holiday.immacolata':'Immacolata (8 Dic)','holiday.natale':'Natale (25 Dic)','holiday.sstefano':'Santo Stefano (26 Dic)',
     'err.fill':'Compila tutti i campi.','err.short':'Password troppo corta (min 3 caratteri).',
-    'err.nomatch':'Le password non coincidono.','err.exists':'Utente già esistente.',
+    'err.nomatch':'Le password non coincidono.','err.exists':'Utente gi� esistente.',
     'err.notfound':'Utente non trovato.','err.wrongpass':'Password errata.',
     'err.dateorder':'La data fine deve essere dopo la data inizio.',
     'leaderboard.title':'Classifica','leaderboard.sub':'Chi ha completato lo stage prima','leaderboard.empty':'Nessuno ha ancora completato lo stage','leaderboard.done':'Completato',
     'stats.title':'Statistiche','stats.sub':'Ore lavorate nel tempo','stats.workedHours':'Ore lavorate','stats.weeklyHours':'Ore settimanali target','stats.dailyBreakdown':'Giorno per giorno (questa settimana)','stats.totalHours':'Ore totali','stats.avgWeek':'Media h/sett','stats.avgDay':'Media h/giorno','stats.workingDays':'Giorni lavorati',
     'settings.close':'Chiudi',
-    'autostart.msg':'Per avviare Stage Tracker all\'accensione del PC:\n\n1. Premi Win + R\n2. Digita "shell:startup" e premi Invio\n3. Trascina il file Stage Tracker.lnk (o crea un collegamento a index.html) nella cartella\n\nIn alternativa se usi Chrome:\n- Apri stage tracker\n- Clicca i tre puntini ⋮ → Altri strumenti → Crea collegamento\n- Spunta "Apri come finestra"\n- Sposta il collegamento in shell:startup',
+    'autostart.msg':'Per avviare Stage Tracker all\'accensione del PC:\n\n1. Premi Win + R\n2. Digita "shell:startup" e premi Invio\n3. Trascina il file Stage Tracker.lnk (o crea un collegamento a index.html) nella cartella\n\nIn alternativa se usi Chrome:\n- Apri stage tracker\n- Clicca i tre puntini ? ? Altri strumenti ? Crea collegamento\n- Spunta "Apri come finestra"\n- Sposta il collegamento in shell:startup',
     'autostart.confirm':'Abilitare l\'avvio automatico di Stage Tracker all\'accensione del PC?',
     'autostart.done':'Avvio automatico abilitato con successo!',
     'autostart.fail':'Impossibile abilitare l\'avvio automatico.',
+    'chat.title':'Chat','chat.sub':'Messaggi in tempo reale','chat.input':'Scrivi un messaggio...','chat.send':'Invia','chat.empty':'Nessun messaggio',
+    'follow.follow':'Segui','follow.following':'Seguito','follow.unfollow':'Non seguire pi�',
   },
   en: {
     'app.name':'Stage Tracker',
@@ -736,23 +786,27 @@ const T = {
     'register.confirm':'Confirm password','register.registerBtn':'Register',
     'register.hasAccount':'Already have an account?','register.loginLink':'Sign In',
     'dash.progress':'Internship progress','dash.worked':'worked','dash.total':'total','dash.workedToday':'today','dash.remaining':'left',
+    'sync.ok':'Synced','sync.offline':'Offline','sync.error':'Sync error','sync.retry':'Retry',
     'dash.countdown':'Time remaining','dash.completed':'Internship completed!',
     'dash.days':'Days','dash.hours':'Hours','dash.mins':'Minutes','dash.secs':'Seconds','dash.workDays':'Working days remaining','dash.workDaysAbbr':'Wkd',
     'phase.before':'Not started yet','phase.morning':'Morning shift','phase.lunch':'Lunch break','phase.afternoon':'Afternoon shift','phase.done':'Day finished','phase.weekend':'Day off',
     'next.morning':'Start work','next.lunch':'Lunch break','next.afternoon':'Resume','next.done':'End work','next.none':'Day over',
     'monitor.title':'Monitoring','monitor.week':'Week',
     'notif.lunchSoon':'Lunch break','notif.lunchSoonBody':'5 minutes until lunch!',
-    'notif.lunch':'Enjoy your meal!','notif.lunchBody':'Lunch break started. Relax! 🍝',
+    'notif.morning':'Good morning!','notif.morningBody':'Morning shift started. Let\'s go!',
+    'notif.lunch':'Enjoy your meal!','notif.lunchBody':'Lunch break started. Relax!',
     'notif.afternoonSoon':'Resume','notif.afternoonSoonBody':'5 minutes until work resumes!',
     'notif.afternoon':'Good afternoon!','notif.afternoonBody':'Afternoon shift has started.',
     'notif.endSoon':'End of day','notif.endSoonBody':'5 minutes until the end!',
-    'notif.end':'Day finished!','notif.endBody':'Internship done for today. 🎉',
+    'notif.end':'Day finished!','notif.endBody':'Internship done for today. ??',
     'settings.title':'Settings','settings.sub':'Customize your internship',
+    'update.available':'New version available','update.download':'Download now','update.later':'Later','update.progress':'Downloading','update.downloaded':'Ready to install','update.checking':'Checking for updates...','update.none':'Already up to date','update.error':'Update check failed','changelog.title':'What\'s new','changelog.btn':'Continue','restart':'Restart now','restart.delay':'Restarting in {s}s',
     'settings.tabPeriod':'Period','settings.tabHours':'Hours','settings.tabHolidays':'Holidays','settings.tabTheme':'Theme','settings.tabClock':'Clock',
     'settings.start':'Start date','settings.end':'End date',
     'settings.morning':'Morning','settings.afternoon':'Afternoon',
     'settings.days':'Working days','settings.cancel':'Cancel','settings.save':'Save',
     'settings.clockStyle':'Clock style','settings.clockPreview':'Preview',
+    'settings.saved':'Settings saved!',
     'settings.holidaysEnable':'Recognise holidays','settings.holidaysNational':'National (always closed)','settings.holidaysCompany':'Company (varies)',
     'days.mon':'Mon','days.tue':'Tue','days.wed':'Wed','days.thu':'Thu','days.fri':'Fri','days.sat':'Sat','days.sun':'Sun',
     'theme.default':'Default','theme.emerald':'Emerald','theme.amber':'Amber','theme.rose':'Rose','theme.midnight':'Midnight','theme.forest':'Forest','theme.ocean':'Ocean','theme.sunset':'Sunset','theme.lavender':'Lavender',
@@ -764,21 +818,23 @@ const T = {
     'err.dateorder':'End date must be after start date.',
     'leaderboard.title':'Leaderboard','leaderboard.sub':'Who finished the internship first','leaderboard.empty':'No one has completed their internship yet','leaderboard.done':'Done',
     'stats.title':'Statistics','stats.sub':'Hours worked over time','stats.workedHours':'Worked','stats.weeklyHours':'Weekly target','stats.dailyBreakdown':'Day by day (this week)','stats.totalHours':'Total hours','stats.avgWeek':'Avg h/week','stats.avgDay':'Avg h/day','stats.workingDays':'Working days',
-    'notif.summary':'Day summary','notif.summaryBody':'Today you worked {h}h {m}min — Progress: {p}%',
+    'notif.summary':'Day summary','notif.summaryBody':'Today you worked {h}h {m}min � Progress: {p}%',
     'notif.milestone':'Milestone!','notif.milestoneBody':'You completed {p}% of the internship!',
-    'notif.weekly':'Weekly recap','notif.weeklyBody':'This week you worked {h}h — Avg: {a}h/day',
+    'notif.weekly':'Weekly recap','notif.weeklyBody':'This week you worked {h}h � Avg: {a}h/day',
     'notif.leaderboard':'Leaderboard update','notif.leaderboardBody':'{u} completed the internship!',
     'settings.close':'Close',
-    'autostart.msg':'To start Stage Tracker automatically on boot:\n\n1. Press Win + R\n2. Type "shell:startup" and press Enter\n3. Drag a shortcut to index.html into the folder\n\nOr in Chrome:\n- Open stage tracker\n- Click ⋮ → More tools → Create shortcut\n- Check "Open as window"\n- Move the shortcut to shell:startup',
+    'autostart.msg':'To start Stage Tracker automatically on boot:\n\n1. Press Win + R\n2. Type "shell:startup" and press Enter\n3. Drag a shortcut to index.html into the folder\n\nOr in Chrome:\n- Open stage tracker\n- Click ? ? More tools ? Create shortcut\n- Check "Open as window"\n- Move the shortcut to shell:startup',
     'autostart.confirm':'Enable auto-start for Stage Tracker on boot?',
     'autostart.done':'Auto-start enabled successfully!',
     'autostart.fail':'Could not enable auto-start.',
+    'chat.title':'Chat','chat.sub':'Real-time messages','chat.input':'Write a message...','chat.send':'Send','chat.empty':'No messages',
+    'follow.follow':'Follow','follow.following':'Following','follow.unfollow':'Unfollow',
   }
 };
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // THEMES
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 const THEMES = {
   default:  { p:'#4f8cff', a:'#a855f7', b1:'#4f8cff', b2:'#a855f7', b3:'#06b6d4' },
   emerald:  { p:'#34d399', a:'#059669', b1:'#34d399', b2:'#059669', b3:'#0d9488' },
@@ -791,9 +847,9 @@ const THEMES = {
   lavender: { p:'#c084fc', a:'#7c3aed', b1:'#c084fc', b2:'#7c3aed', b3:'#6d28d9' },
 };
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // ITALIAN HOLIDAYS
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 const IT_HOLIDAYS = [
   { id:'capodanno',   key:'holiday.capodanno',   month:1,  day:1,    type:'nazionale' },
   { id:'epifania',     key:'holiday.epifania',     month:1,  day:6,    type:'nazionale' },
@@ -849,30 +905,12 @@ function isHoliday(date) {
   });
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // STATE
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 const DB_KEY = 'stageTrackerDBv2';
 const SUPABASE_URL = 'https://akodhogcuowpgndetaca.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_RDgmoNu63LevzxOsufAMfg_6qiVEnpS';
-let supabase = null;
-let supabaseReady = false;
-
-try {
-  if (typeof supabase !== 'undefined' && SUPABASE_URL && SUPABASE_KEY) {
-    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    supabaseReady = true;
-    // Realtime subscription for leaderboard
-    try {
-      const channel = supabase.channel('leaderboard-changes');
-      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, payload => {
-        if (payload.new && payload.new.username !== currentUser) {
-          sendNotif(tr('notif.leaderboard'), tr('notif.leaderboardBody').replace('{u}', payload.new.username));
-        }
-      }).subscribe();
-    } catch(e) { console.warn('Realtime sub failed', e); }
-  }
-} catch(e) { supabaseReady = false; }
 
 let currentUser = null;
 let config = {};  // current user's config
@@ -880,44 +918,85 @@ let startDate = null, endDate = null;
 let animPct = 0, prevTargetPct = 0;
 let hasTriggered100 = false;
 
-// ── Sync helpers ──
+let supabaseClient = null;
+let supabaseReady = false;
+
+function initSupabase() {
+  if (supabaseReady || !SUPABASE_URL || !SUPABASE_KEY) return;
+  try {
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+      setSyncStatus('offline');
+      return;
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseReady = true;
+    setSyncStatus('ok');
+    try {
+      const channel = supabaseClient.channel('leaderboard-changes');
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, payload => {
+        if (payload.new && payload.new.username !== currentUser) {
+          alertNotif(tr('notif.leaderboard'), tr('notif.leaderboardBody').replace('{u}', payload.new.username));
+          openLeaderboard();
+        }
+      });
+      channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leaderboard' }, payload => {
+        if (payload.new && payload.new.username !== currentUser && document.getElementById('leaderboardScreen').classList.contains('active')) {
+          openLeaderboard();
+        }
+      });
+      channel.subscribe();
+    } catch (e) {}
+    try {
+      initChatChannel();
+    } catch (e) {}
+  } catch (e) {
+    supabaseReady = false;
+    setSyncStatus('offline');
+  }
+}
+
+// -- Sync helpers --
 function getDB() {
   try { const r=localStorage.getItem(DB_KEY); return r?JSON.parse(r):{users:{}}; } catch { return {users:{}}; }
 }
 function saveDB(db) { try { localStorage.setItem(DB_KEY,JSON.stringify(db)); } catch {} }
 
 async function syncUserToSupabase(username, passwordHash, cfg) {
-  if (!supabaseReady) return;
+  if (!supabaseReady) { setSyncStatus('offline'); return; }
   try {
     // Upsert user
-    await supabase.from('users').upsert({ username, password_hash: passwordHash }, { onConflict: 'username' });
+    await supabaseClient.from('users').upsert({ username, password_hash: passwordHash }, { onConflict: 'username' });
     // Upsert config
-    await supabase.from('configs').upsert({ username, config: cfg }, { onConflict: 'username' });
-  } catch(e) { /* offline, fallback to localStorage */ }
+    await supabaseClient.from('configs').upsert({ username, config: cfg }, { onConflict: 'username' });
+    setSyncStatus('ok');
+  } catch(e) { setSyncStatus('error'); /* offline, fallback to localStorage */ }
 }
 
 async function syncLeaderboardToSupabase(lb) {
-  if (!supabaseReady || !lb.length) return;
+  if (!supabaseReady || !lb.length) { setSyncStatus('offline'); return; }
   try {
     const rows = lb.map(e => ({ username: e.user, completed_at: e.completedAt }));
-    await supabase.from('leaderboard').upsert(rows, { onConflict: 'username' });
-  } catch(e) {}
+    await supabaseClient.from('leaderboard').upsert(rows, { onConflict: 'username' });
+    setSyncStatus('ok');
+  } catch(e) { setSyncStatus('error'); }
 }
 
 async function loadFromSupabase(username) {
-  if (!supabaseReady) return null;
+  if (!supabaseReady) { setSyncStatus('offline'); return null; }
   try {
-    const { data } = await supabase.from('configs').select('config').eq('username', username).single();
+    const { data } = await supabaseClient.from('configs').select('config').eq('username', username).single();
+    if (data) setSyncStatus('ok');
     return data ? data.config : null;
-  } catch(e) { return null; }
+  } catch(e) { setSyncStatus('error'); return null; }
 }
 
 async function loadLeaderboardFromSupabase() {
-  if (!supabaseReady) return null;
+  if (!supabaseReady) { setSyncStatus('offline'); return null; }
   try {
-    const { data } = await supabase.from('leaderboard').select('username, completed_at').order('completed_at');
+    const { data } = await supabaseClient.from('leaderboard').select('username, completed_at').order('completed_at');
+    if (data) setSyncStatus('ok');
     if (data) return data.map(r => ({ user: r.username, completedAt: r.completed_at }));
-  } catch(e) {}
+  } catch(e) { setSyncStatus('error'); }
   return null;
 }
 
@@ -965,44 +1044,32 @@ async function saveUserWithPassword(username, passwordHash) {
   if (supabaseReady) syncUserToSupabase(username, passwordHash, db.users[username].config);
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // I18N
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function tr(key) {
-  const lang = config.language || 'it';
+  const lang = (config && config.language) || 'it';
   return (T[lang] && T[lang][key]) || (T.it[key]) || key;
 }
 
 function applyLang() {
   document.querySelectorAll('[data-tkey]').forEach(el => {
     const k = el.dataset.tkey;
-    el.textContent = tr(k);
+    if (el.children.length === 0) el.textContent = tr(k);
   });
-  document.querySelectorAll('[data-tkey]').forEach(el => {
-    // Re-apply for nested
-    const k = el.dataset.tkey;
-    if (el.children.length === 0 || el.dataset.tkey) {
-      el.textContent = tr(k);
-    }
-  });
-  // Day buttons
   document.querySelectorAll('.day-btn').forEach(el => {
-    const k = el.dataset.tkey;
-    if (k) el.textContent = tr(k);
+    if (el.dataset.tkey) el.textContent = tr(el.dataset.tkey);
   });
-  // Theme cards
   document.querySelectorAll('.theme-card span').forEach(el => {
-    const k = el.dataset.tkey;
-    if (k) el.textContent = tr(k);
+    if (el.dataset.tkey) el.textContent = tr(el.dataset.tkey);
   });
-  // Placeholders
   document.getElementById('loginUser').placeholder = tr('login.username').toLowerCase() + '...';
   document.getElementById('regUser').placeholder = tr('login.username').toLowerCase() + '...';
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // THEME
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function applyTheme(name) {
   const t = THEMES[name] || THEMES.default;
   document.documentElement.style.setProperty('--primary', t.p);
@@ -1015,9 +1082,30 @@ function applyTheme(name) {
   document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
+// SYNC STATUS
+// ----------------------------------------------
+function setSyncStatus(status) {
+  const b = document.getElementById('syncBadge');
+  if (!b) return;
+  b.classList.remove('offline','error');
+  if (status === 'ok') { b.textContent = '\u2713'; b.title = tr('sync.ok'); }
+  else if (status === 'offline') { b.classList.add('offline'); b.textContent = '\u26A0'; b.title = tr('sync.offline'); }
+  else if (status === 'error') { b.classList.add('error'); b.textContent = '\u2717'; b.title = tr('sync.error'); }
+}
+
+function showToast(msg) {
+  const c = document.getElementById('toastContainer');
+  if (!c) return;
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add('toast-out'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ----------------------------------------------
 // AUTH
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 async function hashPass(pwd) {
   const enc = new TextEncoder();
   const h = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
@@ -1033,13 +1121,36 @@ async function handleLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   const err = document.getElementById('loginErr');
+  const se = document.getElementById('syncErr');
+  const btn = document.getElementById('loginBtn');
   if (!u || !p) { err.textContent = tr('err.fill'); return; }
   const db = getDB();
-  if (!db.users[u]) { err.textContent = tr('err.notfound'); return; }
+  let userFound = !!(db.users && db.users[u]);
+
+  // If not in localStorage, try loading from Supabase
+  if (!userFound && supabaseReady) {
+    try {
+      const { data } = await supabaseClient.from('users').select('password_hash').eq('username', u).maybeSingle();
+      if (data) {
+        if (!db.users) db.users = {};
+        db.users[u] = { password: data.password_hash, config: {} };
+        // Also load config
+        const { data: cfgData } = await supabaseClient.from('configs').select('config').eq('username', u).maybeSingle();
+        if (cfgData) db.users[u].config = cfgData.config;
+        saveDB(db);
+        userFound = true;
+      }
+    } catch(e) {}
+  }
+
+  if (!userFound) { err.textContent = tr('err.notfound'); return; }
   if (await hashPass(p) !== db.users[u].password) { err.textContent = tr('err.wrongpass'); return; }
   err.textContent = '';
+  se.style.display = 'none';
+  btn.disabled = true; btn.textContent = '...';
   db.currentUser = u; saveDB(db);
   await initSession(u);
+  btn.disabled = false; btn.textContent = tr('login.loginBtn');
 }
 
 async function handleRegister() {
@@ -1047,17 +1158,22 @@ async function handleRegister() {
   const p = document.getElementById('regPass').value;
   const p2 = document.getElementById('regPass2').value;
   const err = document.getElementById('registerErr');
+  const se = document.getElementById('syncErr');
+  const btn = document.getElementById('regBtn');
   if (!u || !p || !p2) { err.textContent = tr('err.fill'); return; }
   if (p.length < 3) { err.textContent = tr('err.short'); return; }
   if (p !== p2) { err.textContent = tr('err.nomatch'); return; }
   const db = getDB();
   if (db.users[u]) { err.textContent = tr('err.exists'); return; }
   const pwdHash = await hashPass(p);
+  btn.disabled = true; btn.textContent = '...';
   db.users[u] = { password: pwdHash, config: { ...DEFAULTS } };
   db.currentUser = u; saveDB(db);
   await saveUserWithPassword(u, pwdHash);
   err.textContent = '';
+  se.style.display = 'none';
   await initSession(u);
+  btn.disabled = false; btn.textContent = tr('register.registerBtn');
 }
 
 function logout() {
@@ -1067,6 +1183,9 @@ function logout() {
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
   document.getElementById('loginErr').textContent = '';
+  document.getElementById('syncErr').style.display = 'none';
+  document.getElementById('syncBadge').classList.remove('offline','error');
+  document.getElementById('syncBadge').textContent = '\u2713';
   showScreen('loginScreen');
 }
 
@@ -1078,22 +1197,29 @@ async function initSession(username) {
   applyTheme(config.theme);
   applyLang();
   showScreen('dashboard');
+  loadLayout();
   requestNotifPerm();
+  startNotifTimer();
   loadDates();
-  // Sync leaderboard from Supabase
+  // Sync user to Supabase if online (ensures all users appear in remote leaderboard)
   if (supabaseReady) {
+    const db = getDB();
+    const u = db.users[username];
+    if (u && u.password) {
+      syncUserToSupabase(username, u.password, config);
+    }
+    // Sync leaderboard from Supabase
     const remoteLB = await loadLeaderboardFromSupabase();
     if (remoteLB && remoteLB.length) {
-      const db = getDB();
       db.leaderboard = remoteLB;
       saveDB(db);
     }
   }
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // SETTINGS UI
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function openSettings() {
   const c = config;
   document.getElementById('inputStart').value = c.startDate || '';
@@ -1177,6 +1303,7 @@ async function saveSettings() {
   applyLang();
   closeSettings();
   loadDates();
+  showToast(tr('settings.saved'));
 }
 
 // Tab switching
@@ -1229,9 +1356,9 @@ document.getElementById('clockTypeToggles').addEventListener('click', e => {
 // Holidays master toggle
 document.getElementById('inputEnableHolidays').addEventListener('change', toggleHolidayDisabled);
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // WORKING HOURS ENGINE
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function timeToMin(str) {
   if (!str) return 0;
   const [h,m] = str.split(':').map(Number);
@@ -1299,9 +1426,9 @@ function fmtDate(d) {
   return d.toLocaleDateString(config.language === 'en' ? 'en-GB' : 'it-IT', { day:'numeric', month:'long', year:'numeric' });
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // WEEKLY MONITOR
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function getWeekDates(now) {
   const start = new Date(now);
   start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -1342,7 +1469,7 @@ function renderWeekBars(now) {
     const pct = isWD && dayMin > 0 ? Math.min(100, (worked / dayMin) * 100) : 0;
     const h = Math.floor(worked / 60);
     const m = worked % 60;
-    const label = !isWD ? '—' : isFuture ? '—' : h > 0 ? h + 'h' : m > 0 ? m + 'm' : '—';
+    const label = !isWD ? '�' : isFuture ? '�' : h > 0 ? h + 'h' : m > 0 ? m + 'm' : '�';
 
     html += '<div class="mc-row">'
       + '<span class="mc-dn">' + names[d.getDay()] + '</span>'
@@ -1352,9 +1479,9 @@ function renderWeekBars(now) {
   document.getElementById('weekBars').innerHTML = html;
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // MONTH & LIVE COUNTDOWN
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function getMonthStats(now) {
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
   const diffMs = end - now;
@@ -1391,24 +1518,25 @@ function getRemainingWorkSeconds(now, endStage) {
   if (now >= endStage) return 0;
   const daySec = getDayMinutes() * 60;
   if (daySec <= 0) return 0;
-  const nSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   const ms = timeToMin(config.morningStart) * 60;
   const me = timeToMin(config.morningEnd) * 60;
   const as = timeToMin(config.afternoonStart) * 60;
   const ae = timeToMin(config.afternoonEnd) * 60;
+  const nSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   const today = new Date(now); today.setHours(0,0,0,0);
   const end = new Date(endStage); end.setHours(0,0,0,0);
   let rem = 0;
   const cur = new Date(today);
   while (cur <= end) {
     if (isWorkingDay(cur)) {
-      if (cur.getTime() === end.getTime()) { rem += ae; }
-      else if (cur.getTime() === today.getTime()) {
-        if (nSec < ms) rem += ae;
+      if (cur.getTime() === today.getTime()) {
+        if (nSec < ms) rem += daySec;
         else if (nSec < me) rem += (me - nSec) + (ae - as);
-        else if (nSec < as) rem += ae - nSec;
+        else if (nSec < as) rem += (ae - as);
         else if (nSec < ae) rem += ae - nSec;
-      } else { rem += daySec; }
+      } else {
+        rem += daySec;
+      }
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -1441,9 +1569,9 @@ function fmtSeconds(sec) {
   return pad(m) + ':' + pad(s);
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // DATES
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function loadDates() {
   if (config.startDate && config.endDate) {
     startDate = new Date(config.startDate + 'T' + (config.morningStart || '08:30') + ':00');
@@ -1456,21 +1584,21 @@ function loadDates() {
   updateDisplay();
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // PHASE / TODAY STATUS
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function getPhase(now) {
   const m = now.getHours() * 60 + now.getMinutes();
   const ms = timeToMin(config.morningStart);
   const me = timeToMin(config.morningEnd);
   const as = timeToMin(config.afternoonStart);
   const ae = timeToMin(config.afternoonEnd);
-  if (!isWorkingDay(now)) return { id:'weekend', icon:'🎉', key:'phase.weekend' };
-  if (m < ms) return { id:'before', icon:'🌅', key:'phase.before' };
-  if (m < me) return { id:'morning', icon:'☀️', key:'phase.morning' };
-  if (m < as) return { id:'lunch', icon:'🍝', key:'phase.lunch' };
-  if (m < ae) return { id:'afternoon', icon:'🌤', key:'phase.afternoon' };
-  return { id:'done', icon:'🎉', key:'phase.done' };
+  if (!isWorkingDay(now)) return { id:'weekend', icon:'??', key:'phase.weekend' };
+  if (m < ms) return { id:'before', icon:'??', key:'phase.before' };
+  if (m < me) return { id:'morning', icon:'??', key:'phase.morning' };
+  if (m < as) return { id:'lunch', icon:'??', key:'phase.lunch' };
+  if (m < ae) return { id:'afternoon', icon:'??', key:'phase.afternoon' };
+  return { id:'done', icon:'??', key:'phase.done' };
 }
 
 function getNextTransition(now) {
@@ -1494,22 +1622,61 @@ function fmtMinutes(m) {
   return min + 'm';
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // NOTIFICATIONS
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 let notifTrack = { date: '' };
 let notifPermGranted = false;
 
 function requestNotifPerm() {
-  if (window.location.protocol === 'file:') return;
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission().then(r => { notifPermGranted = r === 'granted'; });
-  } else if ('Notification' in window) {
-    notifPermGranted = Notification.permission === 'granted';
+  if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(r => { notifPermGranted = r === 'granted'; });
+    } else {
+      notifPermGranted = Notification.permission === 'granted';
+    }
   }
 }
 
-function sendNotif(title, body) {
+function playNotifSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc2.type = 'sine'; osc2.frequency.value = 1100;
+      gain2.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc2.start(ctx.currentTime); osc2.stop(ctx.currentTime + 0.25);
+    }, 200);
+  } catch(e) {}
+}
+
+function showNotifBar(msg, icon) {
+  const bar = document.getElementById('notifBar');
+  if(!bar) return;
+  bar.style.display = 'flex';
+  bar.innerHTML = '<span class="nb-icon">'+(icon||'&#128276;')+'</span><span class="nb-text">'+escHtml(msg)+'</span>';
+  bar.style.opacity = '0'; bar.style.transform = 'translateY(-20px)';
+  requestAnimationFrame(() => { bar.style.opacity = ''; bar.style.transform = ''; });
+  clearTimeout(bar._hide);
+  bar._hide = setTimeout(() => {
+    bar.style.opacity = '0'; bar.style.transform = 'translateY(-20px)';
+    setTimeout(() => bar.style.display='none', 400);
+  }, 5000);
+}
+
+function alertNotif(title, body) {
+  playNotifSound();
+  showNotifBar(body, '&#9200;');
   if (notifPermGranted) {
     try { new Notification(title, { body, icon: 'icon.png' }); } catch(e) {}
   }
@@ -1523,7 +1690,8 @@ function sendSummaryNotif() {
   const pct = Math.round(computeProgress() * 100);
   const h = Math.floor(worked / 60);
   const m = worked % 60;
-  sendNotif(tr('notif.summary'), tr('notif.summaryBody').replace('{h}',h).replace('{m}',m).replace('{p}',pct));
+  const body = tr('notif.summaryBody').replace('{h}',h).replace('{m}',m).replace('{p}',pct);
+  alertNotif(tr('notif.summary'), body);
 }
 
 function sendWeeklyNotif() {
@@ -1535,7 +1703,7 @@ function sendWeeklyNotif() {
   if (!cur) return;
   const h = Math.round(cur.totalMins / 60 * 10) / 10;
   const a = cur.days.length > 0 ? Math.round(cur.totalMins / cur.days.length / 60 * 10) / 10 : 0;
-  sendNotif(tr('notif.weekly'), tr('notif.weeklyBody').replace('{h}',h).replace('{a}',a));
+  alertNotif(tr('notif.weekly'), tr('notif.weeklyBody').replace('{h}',h).replace('{a}',a));
 }
 
 let milestoneSent = new Set();
@@ -1546,47 +1714,48 @@ function checkMilestones() {
   for (const m of milestones) {
     if (pct >= m && !milestoneSent.has(m)) {
       milestoneSent.add(m);
-      sendNotif(tr('notif.milestone'), tr('notif.milestoneBody').replace('{p}', m));
+      alertNotif(tr('notif.milestone'), tr('notif.milestoneBody').replace('{p}', m));
     }
   }
 }
 
-function checkNotifs(now) {
-  const today = now.toDateString();
-  if (notifTrack.date !== today) {
-    notifTrack = { date: today };
-    milestoneSent.clear();
-  }
-  if (!isWorkingDay(now)) return;
+let notifTimer = null;
+function startNotifTimer() {
+  if(notifTimer) clearInterval(notifTimer);
+  notifTimer = setInterval(() => {
+    const now = new Date();
+    const today = now.toDateString();
+    if (notifTrack.date !== today) {
+      notifTrack = { date: today };
+      milestoneSent.clear();
+    }
+    if (!isWorkingDay(now)) return;
 
-  const m = now.getHours() * 60 + now.getMinutes();
-  const s = now.getSeconds();
-  const me = timeToMin(config.morningEnd);
-  const as = timeToMin(config.afternoonStart);
-  const ae = timeToMin(config.afternoonEnd);
+    const m = now.getHours() * 60 + now.getMinutes();
+    const s = now.getSeconds();
+    const ms = timeToMin(config.morningStart);
+    const me = timeToMin(config.morningEnd);
+    const as = timeToMin(config.afternoonStart);
+    const ae = timeToMin(config.afternoonEnd);
 
-  if (s > 3) return; // only check first 3s of each minute
+    if (s > 0) return; // only once per minute
 
-  if (m === me - 5 && !notifTrack.wLunch)   { notifTrack.wLunch = true; sendNotif(tr('notif.lunchSoon'), tr('notif.lunchSoonBody')); }
-  if (m === me && !notifTrack.lunch)         { notifTrack.lunch = true; sendNotif(tr('notif.lunch'), tr('notif.lunchBody')); }
-  if (m === as - 5 && !notifTrack.wAfter)    { notifTrack.wAfter = true; sendNotif(tr('notif.afternoonSoon'), tr('notif.afternoonSoonBody')); }
-  if (m === as && !notifTrack.after)         { notifTrack.after = true; sendNotif(tr('notif.afternoon'), tr('notif.afternoonBody')); }
-  if (m === ae - 5 && !notifTrack.wEnd)      { notifTrack.wEnd = true; sendNotif(tr('notif.endSoon'), tr('notif.endSoonBody')); }
-  if (m === ae && !notifTrack.end)           { notifTrack.end = true; sendNotif(tr('notif.end'), tr('notif.endBody')); }
-
-  // Daily summary 1 minute after end
-  if (m === ae + 1 && !notifTrack.summary)   { notifTrack.summary = true; sendSummaryNotif(); }
-
-  // Weekly recap every Friday at afternoon end + 1
-  if (now.getDay() === 5 && m === ae + 1 && !notifTrack.weekly) { notifTrack.weekly = true; sendWeeklyNotif(); }
-
-  // Milestone check (once per minute outside the s guard)
-  if ((m === me || m === as || m === ae) && !notifTrack.mcheck) { notifTrack.mcheck = true; checkMilestones(); }
+    if (m === ms && !notifTrack.morning)       { notifTrack.morning = true; alertNotif(tr('notif.morning'), tr('notif.morningBody')); }
+    if (m === me - 5 && !notifTrack.wLunch)    { notifTrack.wLunch = true; alertNotif(tr('notif.lunchSoon'), tr('notif.lunchSoonBody')); }
+    if (m === me && !notifTrack.lunch)         { notifTrack.lunch = true; alertNotif(tr('notif.lunch'), tr('notif.lunchBody')); }
+    if (m === as - 5 && !notifTrack.wAfter)    { notifTrack.wAfter = true; alertNotif(tr('notif.afternoonSoon'), tr('notif.afternoonSoonBody')); }
+    if (m === as && !notifTrack.after)         { notifTrack.after = true; alertNotif(tr('notif.afternoon'), tr('notif.afternoonBody')); }
+    if (m === ae - 5 && !notifTrack.wEnd)      { notifTrack.wEnd = true; alertNotif(tr('notif.endSoon'), tr('notif.endSoonBody')); }
+    if (m === ae && !notifTrack.end)           { notifTrack.end = true; alertNotif(tr('notif.end'), tr('notif.endBody')); }
+    if (m === ae + 1 && !notifTrack.summary)   { notifTrack.summary = true; sendSummaryNotif(); }
+    if (now.getDay() === 5 && m === ae + 1 && !notifTrack.weekly) { notifTrack.weekly = true; sendWeeklyNotif(); }
+    if ((m === me || m === as || m === ae) && !notifTrack.mcheck) { notifTrack.mcheck = true; checkMilestones(); }
+  }, 1000);
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // LEADERBOARD
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function getLeaderboard() {
   const db = getDB();
   return db.leaderboard || [];
@@ -1663,33 +1832,41 @@ async function recordCompletion() {
   }
 }
 
+async function loadAllUsernames() {
+  const local = Object.keys((getDB()).users || {});
+  if (!supabaseReady) return local;
+  try {
+    const { data } = await supabaseClient.from('users').select('username');
+    if (data) {
+      const remote = data.map(r => r.username);
+      return [...new Set([...local, ...remote])];
+    }
+  } catch(e) { setSyncStatus('error'); }
+  return local;
+}
+
 async function openLeaderboard() {
   // Pull latest from Supabase
+  const db = getDB();
   if (supabaseReady) {
     const remoteLB = await loadLeaderboardFromSupabase();
     if (remoteLB) {
-      const db = getDB();
       db.leaderboard = remoteLB;
       saveDB(db);
     }
   }
-  const db = getDB();
   const lb = db.leaderboard || [];
-  const allUsers = Object.keys(db.users || {});
+  const allUsers = await loadAllUsernames();
   // Build entries: completed come first, then in-progress sorted by pct desc
   const entries = [];
   const completedMap = {};
   lb.forEach(e => { completedMap[e.user] = e.completedAt; });
 
-  for (const u of allUsers) {
-    try {
-      const pct = await computeUserProgress(u);
-      const ca = completedMap[u];
-      entries.push({ user: u, pct, completedAt: ca || null });
-    } catch(e) {
-      entries.push({ user: u, pct: 0, completedAt: null });
-    }
-  }
+  const results = await Promise.all(allUsers.map(async u => {
+    try { return { user: u, pct: await computeUserProgress(u), completedAt: completedMap[u] || null }; }
+    catch(e) { return { user: u, pct: 0, completedAt: null }; }
+  }));
+  entries.push(...results);
 
   // Sort: completed first (by date), then in-progress (by pct desc)
   entries.sort((a, b) => {
@@ -1729,26 +1906,199 @@ async function openLeaderboard() {
       const pctDisplay = isCompleted
         ? '<span class="lb-badge lb-badge-done" data-tkey="leaderboard.done">Completato</span>'
         : '<span class="lb-pct">' + entry.pct + '%</span>';
+      const followBtn = isMe ? '' : '<button class="follow-btn" data-user="' + escHtml(entry.user) + '" style="padding:4px 10px;border-radius:6px;border:1px solid var(--card-border);background:' + (isFollowing(entry.user) ? 'var(--primary-dim)' : 'rgba(255,255,255,0.04)') + ';color:' + (isFollowing(entry.user) ? 'var(--primary)' : 'var(--dim)') + ';font-size:10px;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0;transition:all 0.2s;">' + (isFollowing(entry.user) ? tr('follow.following') : tr('follow.follow')) + '</button>';
       row.innerHTML =
         '<span class="lb-rank">' + rankHtml + '</span>' +
         '<span class="lb-user' + (isMe ? ' lb-me' : '') + '">' + escHtml(entry.user) + '</span>' +
-        '<span class="lb-right">' + pctDisplay + '</span>';
+        '<span class="lb-right" style="display:flex;align-items:center;gap:8px;">' + followBtn + pctDisplay + '</span>';
       list.appendChild(row);
     });
   }
   applyLang();
+  // Follow button click handler
+  list.querySelectorAll('.follow-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const user = btn.dataset.user;
+      await toggleFollow(user);
+      openLeaderboard();
+    });
+  });
+  // Periodic refresh every 30s
+  if (lbRefreshInterval) clearInterval(lbRefreshInterval);
+  lbRefreshInterval = setInterval(() => { if (document.getElementById('leaderboardScreen').classList.contains('active')) openLeaderboard(); }, 30000);
   showScreen('leaderboardScreen');
 }
 
 function closeLeaderboard() {
   showScreen('dashboard');
+  if (lbRefreshInterval) { clearInterval(lbRefreshInterval); lbRefreshInterval = null; }
+}
+
+// ----------------------------------------------
+// FOLLOW SYSTEM
+// ----------------------------------------------
+let follows = [];
+
+function loadFollows() {
+  try {
+    follows = JSON.parse(localStorage.getItem('stFollows_' + currentUser)) || [];
+  } catch(e) { follows = []; }
+  if (supabaseReady && currentUser) {
+    supabaseClient.from('follows').select('following').eq('follower', currentUser).then(({ data }) => {
+      if (data) {
+        follows = data.map(r => r.following);
+        try { localStorage.setItem('stFollows_' + currentUser, JSON.stringify(follows)); } catch(e) {}
+      }
+    }).catch(() => {});
+  }
+}
+
+function isFollowing(username) {
+  return follows.includes(username);
+}
+
+async function toggleFollow(username) {
+  if (!supabaseReady) {
+    if (isFollowing(username)) {
+      follows = follows.filter(f => f !== username);
+    } else {
+      follows.push(username);
+    }
+    try { localStorage.setItem('stFollows_' + currentUser, JSON.stringify(follows)); } catch(e) {}
+    return;
+  }
+  if (isFollowing(username)) {
+    try {
+      await supabaseClient.from('follows').delete().eq('follower', currentUser).eq('following', username);
+    } catch(e) {}
+    follows = follows.filter(f => f !== username);
+  } else {
+    try {
+      await supabaseClient.from('follows').insert({ follower: currentUser, following: username });
+    } catch(e) {}
+    follows.push(username);
+  }
+  try { localStorage.setItem('stFollows_' + currentUser, JSON.stringify(follows)); } catch(e) {}
+}
+
+// ----------------------------------------------
+// CHAT SYSTEM
+// ----------------------------------------------
+let chatMessages = [];
+let chatChannel = null;
+let chatBadgeCount = 0;
+let lbRefreshInterval = null;
+
+function chatBadge(val) {
+  const btn = document.getElementById('chatBtn');
+  if (!btn) return;
+  let badge = btn.querySelector('.chat-badge');
+  if (val > 0) {
+    chatBadgeCount = val;
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'chat-badge';
+      badge.style.cssText = 'position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:#ff4757;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 6px rgba(255,71,87,0.4);';
+      btn.style.position = 'relative';
+      btn.appendChild(badge);
+    }
+    badge.textContent = val > 9 ? '9+' : val;
+  } else {
+    if (badge) badge.remove();
+    chatBadgeCount = 0;
+  }
+}
+
+async function loadChatMessages() {
+  if (!supabaseReady) return;
+  try {
+    const { data } = await supabaseClient.from('messages').select('*').order('created_at').limit(50);
+    if (data) {
+      const existingIds = new Set(chatMessages.map(m => m.id));
+      data.forEach(m => { if (!existingIds.has(m.id)) chatMessages.push(m); });
+      chatMessages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      renderChatMessages();
+    }
+  } catch(e) {}
+}
+
+function renderChatMessages() {
+  const list = document.getElementById('chatMessagesList');
+  if (!list) return;
+  if (chatMessages.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:30px 0;color:var(--dimmer);font-size:14px;" data-tkey="chat.empty">' + tr('chat.empty') + '</div>';
+    return;
+  }
+  const wasNearBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 40;
+  list.innerHTML = chatMessages.map(msg => {
+    const isMe = msg.username === currentUser;
+    const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return '<div style="display:flex;flex-direction:column;align-items:' + (isMe ? 'flex-end' : 'flex-start') + '">'
+      + '<div style="font-size:11px;color:var(--dim);margin-bottom:2px;font-weight:600;">' + escHtml(msg.username) + ' <span style="font-weight:400;color:var(--dimmer)">' + time + '</span></div>'
+      + '<div style="padding:8px 12px;border-radius:12px;max-width:80%;word-break:break-word;font-size:13px;background:' + (isMe ? 'linear-gradient(135deg,var(--primary),var(--accent))' : 'rgba(255,255,255,0.06)') + ';color:#fff;">' + escHtml(msg.content) + '</div>'
+      + '</div>';
+  }).join('');
+  if (wasNearBottom) list.scrollTop = list.scrollHeight;
+}
+
+function initChatChannel() {
+  if (!supabaseReady || chatChannel) return;
+  chatChannel = supabaseClient.channel('chat-messages');
+  chatChannel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+    if (payload.new) {
+      const dup = chatMessages.some(m => m.id === payload.new.id);
+      if (!dup) {
+        chatMessages.push(payload.new);
+        const chatOpen = document.getElementById('chatScreen').classList.contains('active');
+        if (chatOpen) {
+          renderChatMessages();
+        } else {
+          chatBadge(chatBadgeCount + 1);
+        }
+      }
+    }
+  });
+  chatChannel.subscribe();
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const content = input.value.trim();
+  if (!content || !supabaseReady) return;
+  input.value = '';
+  try {
+    await supabaseClient.from('messages').insert({ username: currentUser, content });
+  } catch(e) {}
+}
+
+async function openChat() {
+  chatBadge(0);
+  await loadChatMessages();
+  applyLang();
+  showScreen('chatScreen');
+}
+
+function closeChat() {
+  showScreen('dashboard');
 }
 
 function escHtml(s) { return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
-// ══════════════════════════════════════════════
+function showToast(msg) {
+  const t=document.getElementById('toastContainer');
+  if(!t) return;
+  const el=document.createElement('div');
+  el.className='toast-msg'; el.textContent=msg;
+  el.style.opacity='0'; el.style.transform='translateY(10px)';
+  t.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.opacity=''; el.style.transform=''; });
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(10px)'; setTimeout(()=>el.remove(),300); },2500);
+}
+
+// ----------------------------------------------
 // AUTO START
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 async function setupAutoStart() {
   // Try Electron IPC first
   if (window.electronAPI && window.electronAPI.setAutoStart) {
@@ -1757,12 +2107,12 @@ async function setupAutoStart() {
     try {
       const result = await window.electronAPI.setAutoStart();
       if (result) {
-        alert(tr('autostart.done'));
+        showToast(tr('autostart.done'));
       } else {
-        alert(tr('autostart.fail'));
+        showToast(tr('autostart.fail'));
       }
     } catch(e) {
-      alert(tr('autostart.fail'));
+      showToast(tr('autostart.fail'));
     }
     return;
   }
@@ -1771,9 +2121,206 @@ async function setupAutoStart() {
   alert(msg);
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
+// AUTO UPDATE
+// ----------------------------------------------
+const updateBanner = document.getElementById('updateBanner');
+const updateBannerText = document.getElementById('updateBannerText');
+const updateProgress = document.getElementById('updateProgress');
+const updateProgressBar = document.getElementById('updateProgressBar');
+const updateProgressText = document.getElementById('updateProgressText');
+
+function showUpdateBanner(html, showProgress) {
+  updateBannerText.innerHTML = html;
+  if (showProgress) updateProgress.style.display = 'flex';
+  updateBanner.style.display = 'flex';
+}
+
+if (window.electronAPI) {
+  window.electronAPI.onUpdateChecking(() => {
+    showUpdateBanner('&#8987; ' + tr('update.checking'), false);
+  });
+
+  window.electronAPI.onUpdateNone((info) => {
+    showUpdateBanner('&#10003; ' + tr('update.none') + ' v' + info.version, false);
+    setTimeout(() => { updateBanner.style.display = 'none'; }, 4000);
+  });
+
+  window.electronAPI.onUpdateAvailable((info) => {
+    showUpdateBanner('&#11088; ' + tr('update.available') + ' <strong>v' + info.version + '</strong>', true);
+  });
+
+  window.electronAPI.onUpdateProgress((info) => {
+    updateProgress.style.display = 'flex';
+    updateBanner.style.display = 'flex';
+    const pct = Math.round(info.percent);
+    updateProgressBar.style.width = pct + '%';
+    updateProgressText.textContent = pct + '%';
+  });
+
+  window.electronAPI.onUpdateDownloaded((info) => {
+    updateBannerText.innerHTML = '&#9989; ' + (info.version ? 'v' + info.version + ' ' : '') + tr('restart') + '...';
+    updateProgressText.textContent = '100%';
+    updateProgressBar.style.width = '100%';
+  });
+
+  window.electronAPI.onUpdateError((info) => {
+    const detail = info && info.message ? ' (' + info.message.replace(/https?:\/\/[^\s]+/g, '').slice(0, 60) + ')' : '';
+    showUpdateBanner('&#9888; ' + tr('update.error') + detail, false);
+    setTimeout(() => { updateBanner.style.display = 'none'; }, 8000);
+  });
+
+  window.electronAPI.onRestartCountdown((info) => {
+    const s = info.seconds;
+    if (s <= 0) return;
+    updateBannerText.innerHTML = '&#9203; ' + tr('restart.delay').replace('{s}', s);
+    updateBanner.style.display = 'flex';
+    const overlay = document.getElementById('updateOverlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      const sub = document.getElementById('uoCountdown');
+      if (sub) sub.textContent = 'Riavvio tra ' + s + ' secondi';
+    }
+  });
+}
+
+// ----------------------------------------------
+// CHANGELOG
+// ----------------------------------------------
+const CHANGELOG_FALLBACK = {
+  '1.0.15': [
+    'Chat: badge notifica rossa quando arrivano nuovi messaggi',
+    'Chat: iscrizione Realtime persistente (non si disconnette più chiudendo la chat)',
+    'Chat: eliminati messaggi duplicati',
+    'Chat: scroll automatico solo se già in fondo',
+    'Aggiornamenti: fix rate limit GitHub (ora usa version.txt)',
+    'Aggiornamenti: check silenzioso all\'avvio, errore solo su richiesta'
+  ],
+  '1.0.14': [
+    'Nuovo design: interfaccia completamente rinnovata con glass morphism 2.0',
+    'Effetti di sfondo migliorati (blob animati + griglia + dots)',
+    'Tipografia e spaziatura riviste per maggiore leggibilità',
+    'Chat: aggiunto supporto per messaggi in tempo reale con Realtime subscription',
+    'Classifica: refresh automatico ogni 30 secondi e follow system'
+  ],
+  '1.0.13': [
+    'Chat in tempo reale: ora puoi chattare con gli altri utenti',
+    'Sistema Segui: segui gli altri utenti dalla classifica',
+    'Classifica in tempo reale: aggiornamenti live quando qualcuno completa lo stage',
+    'Changelog dinamico: le novità vengono caricate da GitHub',
+    'Miglioramenti e bug fix minori'
+  ],
+  '1.0.12': [
+    'Fix: sync utente su Supabase a ogni login (utenti registrati offline ora appaiono in classifica)',
+  ],
+  '1.0.11': [
+    'Fix: loadLeaderboard() non definita nella Realtime subscription (riferimento a openLeaderboard)',
+  ],
+  '1.0.10': [
+    'Fix: classifica mostra tutti gli utenti (non solo quelli loggati sul PC corrente)',
+  ],
+  '1.0.9': [
+    'Fix: notifiche funzionano anche su file:// (Electron)',
+    'Fix: showNotif -> alertNotif con traduzioni',
+    'Fix: applyLang non distrugge pi� i child elements con data-tkey',
+    'Fix: openLeaderboard ora parallelo (Promise.all)',
+    'Ottimizzazione: rimosse traduzioni inutilizzate',
+  ],
+  '1.0.8': [
+    'Layout semplificato: rimosso drag/resize/edit mode. Layout fisso, countdown custom si posizionano automaticamente.',
+    'Pulsante "+" nell\'header per aggiungere countdown, "�" per eliminare',
+    'Countdown calendario termina alle 18:00 dell\'ultimo giorno (non a mezzanotte)',
+    'Notifiche: funzionano anche su file:// (Electron)',
+    'Bug fix: getRemainingWorkSeconds non contava pi� secondi del dovuto',
+    'Rimossi pulsanti Suggerisci/Reimposta layout e tutta la logica di editing',
+  ],
+  '1.0.6': [
+    'Drag migliorato: collision highlight (widget in rosso) + push-away automatico',
+    'Ridimensionamento con dimensione minima garantita',
+    'Cache celle per drag fluido (nessun ricalcolo a ogni pixel)',
+    'Notifica visiva "Countdown eliminato"',
+    'Grafica generale: bottoni con hover glow, pulsanti edit migliorati',
+    'Bug fix: getCells non ricalcolato a ogni mousemove (performance)',
+    'Barra notifiche con animazione fade-in/out'
+  ],
+  '1.0.5': [
+    'Notifiche con suono + barra visiva + desktop (5 min prima, inizio/fine turno, riepilogo)',
+    'Notifica "Buon lavoro!" all\'inizio del turno mattutino',
+    'Timer notifiche separato (pi� affidabile, non legato al render loop)',
+    'Migliorato aspetto: hover glow, card animate, overlay aggiornamento ridisegnato',
+    'Rimossa GH_TOKEN dalla distribuzione (sicurezza)',
+    'Bug fix: layout non veniva salvato correttamente durante loadLayout'
+  ],
+  '1.0.4': [
+    'Widget trascinabili e ridimensionabili liberamente senza sovrapposizioni',
+    'Countdown personalizzati (nome, data, ora)',
+    'Pulsante "Suggerisci layout" e "Reimposta layout"',
+    'Corretto salvataggio layout tra sessioni',
+    'Avvio garantito su PC aziendali (no-sandbox)',
+    'Rimosso token GitHub dal pacchetto (pi� sicuro)',
+    'Migliorata la gestione errori in fase di caricamento'
+  ],
+  '1.0.3': [
+    'Layout personalizzabile: trascina e ridimensiona i widget',
+    'Schermata bloccante durante l\'aggiornamento',
+    'Miglioramenti alla stabilit� generale'
+  ],
+  '1.0.2': [
+    'Auto-aggiornamento obbligatorio con countdown e riavvio automatico',
+    'Classifica online funzionante (sync con Supabase)',
+    'Popup con novit� dopo ogni aggiornamento',
+    'Fix login: se l\'utente non � in locale, carica da Supabase',
+    'Sync status badge (verde/giallo/rosso)',
+    'Tema migliorato e stabilit� generale'
+  ]
+};
+
+async function showChangelog() {
+  const lastVer = localStorage.getItem('stLastVer') || '';
+  let curVer = '1.0.15';
+  let changes = null;
+
+  try {
+    const res = await fetch('https://api.github.com/repos/mimets/Clock/releases/latest');
+    if (res.ok) {
+      const data = await res.json();
+      curVer = (data.tag_name || curVer).replace(/^v/, '');
+      const body = data.body || '';
+      const lines = body.split('\n').filter(l => /^[-*\s]/.test(l.trim()));
+      if (lines.length > 0) {
+        changes = lines.map(l => l.replace(/^[-*\s]+/, '').trim()).filter(Boolean);
+      }
+    }
+  } catch(e) { /* offline, use fallback */ }
+
+  if (!changes) changes = CHANGELOG_FALLBACK[curVer] || CHANGELOG_FALLBACK['1.0.15'];
+
+  if (lastVer === curVer && (!changes || changes.length === 0)) return;
+  localStorage.setItem('stLastVer', curVer);
+
+  if (!changes || changes.length === 0) return;
+
+  const body = document.getElementById('changelogBody');
+  body.innerHTML = '<ul>' + changes.map(c => '<li>' + escHtml(c) + '</li>').join('') + '</ul>';
+  document.getElementById('changelogOverlay').style.display = 'flex';
+  document.getElementById('changelogBtn').onclick = () => {
+    document.getElementById('changelogOverlay').style.display = 'none';
+  };
+}
+
+// Also update banner on language change
+const _origApplyLangUpd = applyLang;
+applyLang = function() {
+  _origApplyLangUpd();
+  if (updateBanner.style.display !== 'none' && updateBannerText) {
+    const txt = updateBannerText.querySelector('strong');
+    if (txt) updateBannerText.innerHTML = '&#11088; ' + tr('update.available') + ' <strong>' + txt.outerHTML + '</strong>';
+  }
+};
+
+// ----------------------------------------------
 // STATS / CHARTS
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function computeWeeklyStats() {
   if (!startDate || !endDate) return [];
   const dayMin = getDayMinutes();
@@ -1971,9 +2518,9 @@ function checkAutoStart() {
   }
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // CLOCK
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 function drawClockFace(ctx, W, H, cx, cy, R, style) {
   // Outer glow
   const glow = ctx.createRadialGradient(cx, cy, R - 10, cx, cy, R + 20);
@@ -2165,7 +2712,7 @@ function drawClock() {
   drawClockHands(ctx, cx, cy, R, style, h, m, s, ms);
 }
 
-/* ── Draw clock preview in settings modal ── */
+/* -- Draw clock preview in settings modal -- */
 function drawClockPreview(style) {
   const c = document.getElementById('clockPreview');
   if (!c) return;
@@ -2188,9 +2735,9 @@ function drawClockPreview(style) {
   ctx.beginPath(); ctx.arc(cx,cy,2.5,0,Math.PI*2); ctx.fillStyle='var(--primary)'; ctx.fill();
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // CONFETTI
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 let confettiRunning = false;
 function triggerConfetti() {
   if (confettiRunning) return;
@@ -2234,9 +2781,9 @@ function triggerConfetti() {
   tick();
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 // UPDATE DISPLAY
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 let pctAnimeId = null;
 function animatePct(target) {
   if (pctAnimeId) { cancelAnimationFrame(pctAnimeId); }
@@ -2258,6 +2805,7 @@ function animatePct(target) {
 function pad(n) { return String(n).padStart(2,'0'); }
 
 function updateDisplay() {
+  try {
   const hasDates = startDate && endDate && getDayMinutes() > 0;
 
   // Update status card
@@ -2275,10 +2823,10 @@ function updateDisplay() {
     document.getElementById('elapsedLabel').innerHTML = '0h <span data-tkey="dash.worked">' + tr('dash.worked') + '</span>';
     document.getElementById('totalLabel').innerHTML = '0h <span data-tkey="dash.total">' + tr('dash.total') + '</span>';
     document.getElementById('completedView').style.display = 'none';
-    document.getElementById('cdDays').textContent = '—';
-    document.getElementById('cdHours').textContent = '—';
-    document.getElementById('cdMins').textContent = '—';
-    document.getElementById('cdSecs').textContent = '—';
+    document.getElementById('cdDays').textContent = '�';
+    document.getElementById('cdHours').textContent = '�';
+    document.getElementById('cdMins').textContent = '�';
+    document.getElementById('cdSecs').textContent = '�';
     document.querySelectorAll('.milestone').forEach(m => m.classList.remove('reached'));
     const wdr = document.getElementById('workDaysRow');
     if (wdr) wdr.style.display = 'none';
@@ -2318,7 +2866,11 @@ function updateDisplay() {
 
   // Countdown
   const wdr = document.getElementById('workDaysRow');
-  const diff = endDate - now;
+  // End at afternoon end of the last day, not midnight
+  const ae = timeToMin(config.afternoonEnd);
+  const endTarget = new Date(endDate);
+  endTarget.setHours(Math.floor(ae/60), ae%60, 0, 0);
+  const diff = endTarget - now;
   if (diff <= 0) {
     document.getElementById('completedView').style.display = 'block';
     document.getElementById('cdDays').textContent = '00';
@@ -2347,7 +2899,7 @@ function updateDisplay() {
     }
   }
 
-  // ── Today status ──
+  // -- Today status --
   const phase = getPhase(now);
   document.getElementById('phaseIcon').textContent = phase.icon;
   const pl = document.getElementById('phaseLabel');
@@ -2376,7 +2928,7 @@ function updateDisplay() {
   } else if (phase.id === 'done' || phase.id === 'weekend') {
     liveSecEl.style.display = 'flex';
     liveLabel.textContent = tr('phase.' + phase.id);
-    liveTime.textContent = '🎉';
+    liveTime.textContent = '??';
   } else {
     liveSecEl.style.display = 'none';
   }
@@ -2395,16 +2947,162 @@ function updateDisplay() {
   if (mc) { mc.style.display = (hasDates && dayMin > 0) ? 'block' : 'none'; }
   renderWeekBars(now);
 
-  // Notifications
-  checkNotifs(now);
+  // Custom countdowns
+  updateCustomCountdowns();
 
   drawClock();
+  } catch(e) { console.error('updateDisplay:', e); }
 }
 
-// ══════════════════════════════════════════════
+// ----------------------------------------------
+// LAYOUT � simplified fixed layout
+// ----------------------------------------------
+const COLS=12, CELL=80, GAP=12;
+let customCountdowns=[];
+
+const LAYOUT_DEFAULTS = {
+  clock:    { x:0, y:0, w:3, h:4 },
+  progress: { x:0, y:4, w:3, h:4 },
+  status:   { x:3, y:0, w:4, h:3 },
+  countdown:{ x:3, y:3, w:4, h:4 },
+  monitor:  { x:7, y:0, w:5, h:4 }
+};
+
+function getCW(){
+  const w=document.getElementById("dashBody").clientWidth-GAP;
+  return w>0?(w-GAP*(COLS-1))/COLS:70;
+}
+function posX(c){return c*(getCW()+GAP);}
+function posY(r){return r*(CELL+GAP);}
+function wid(c){const cw=getCW();return c*cw+(c-1)*GAP;}
+function hei(r){return r*CELL+(r-1)*GAP;}
+
+function applyLayout(id,p){
+  const el=document.querySelector(`[data-widget-id="${id}"]`);
+  if(!el||!p) return;
+  el.style.left=posX(p.x)+"px"; el.style.top=posY(p.y)+"px";
+  el.style.width=wid(p.w)+"px"; el.style.height=hei(p.h)+"px";
+}
+
+function loadLayout(){
+  let saved;
+  try{saved=JSON.parse(localStorage.getItem("stLayout_"+currentUser));}catch(e){}
+  if(saved){
+    let fix=false;
+    Object.keys(saved).forEach(id=>{
+      if(saved[id].col){
+        const cs=parseInt(saved[id].col),ce=parseInt(saved[id].col.split('/')[1]);
+        const rs=parseInt(saved[id].row),re=parseInt(saved[id].row.split('/')[1]);
+        saved[id]={x:cs-1,y:rs-1,w:ce-cs,h:re-rs};fix=true;
+      }
+    });
+    if(fix) localStorage.setItem("stLayout_"+currentUser,JSON.stringify(saved));
+  }
+  const lay=saved||JSON.parse(JSON.stringify(LAYOUT_DEFAULTS));
+  Object.keys(lay).forEach(id=>{if(!id.startsWith('cc_'))applyLayout(id,lay[id]);});
+  document.querySelectorAll(".dash-widget.cc-widget").forEach(el=>el.remove());
+  customCountdowns=[];
+  try{customCountdowns=JSON.parse(localStorage.getItem("stCustomCD_"+currentUser))||[];}catch(e){}
+  customCountdowns.forEach(c=>{
+    if(!document.querySelector(`[data-widget-id="${c.cid}"]`)) addCustomCountdownDOM(c);
+  });
+  customCountdowns.forEach(c=>{if(lay[c.cid])applyLayout(c.cid,lay[c.cid]);});
+}
+
+function addCustomCountdownDOM(c){
+  const div=document.createElement("div");
+  div.className="glass dash-widget cc-widget";
+  div.dataset.widgetId=c.cid;
+  div.innerHTML=`<div class="dw-inner"><div class="ccard" style="padding:0;background:none;border:none;box-shadow:none;text-align:center"><div class="ctop">${escHtml(c.label)} <span class="cc-del" data-cid="${c.cid}" style="cursor:pointer;color:var(--dimmer);margin-left:6px;font-size:12px;">&times;</span></div><div class="cd-grid"><div class="cd-item"><span class="cd-num" id="${c.cid}_d">00</span><span class="cd-label">Giorni</span></div><span class="cd-sep">:</span><div class="cd-item"><span class="cd-num" id="${c.cid}_h">00</span><span class="cd-label">Ore</span></div><span class="cd-sep">:</span><div class="cd-item"><span class="cd-num" id="${c.cid}_m">00</span><span class="cd-label">Min</span></div><span class="cd-sep">:</span><div class="cd-item"><span class="cd-num" id="${c.cid}_s">00</span><span class="cd-label">Sec</span></div></div></div></div>`;
+  document.getElementById("dashBody").appendChild(div);
+  // Find first gap in current layout
+  const ends={};
+  document.querySelectorAll('.dash-widget[data-widget-id]').forEach(el=>{
+    const id=el.dataset.widgetId;
+    if(id===c.cid) return;
+    const x=Math.round((parseInt(el.style.left)||0)/(getCW()+GAP));
+    const y=Math.round((parseInt(el.style.top)||0)/(CELL+GAP));
+    const w=Math.max(1,Math.round((parseInt(el.style.width)||wid(3)+GAP)/(getCW()+GAP)));
+    const h=Math.max(1,Math.round((parseInt(el.style.height)||hei(3)+GAP)/(CELL+GAP)));
+    for(let c=x;c<x+w;c++) ends[c]=Math.max(ends[c]||0,y+h);
+  });
+  let bx=0,by=30;
+  for(let x=0;x<=COLS-3;x++){
+    const y=Math.max(...Array.from({length:3},(_,i)=>ends[x+i]||0));
+    if(y<by||(y===by&&x<bx)){bx=x;by=y;}
+  }
+  applyLayout(c.cid,{x:bx,y:by,w:3,h:3});
+  saveAllLayouts();
+}
+
+function saveAllLayouts(){
+  const all={};
+  document.querySelectorAll('.dash-widget[data-widget-id]').forEach(el=>{
+    const id=el.dataset.widgetId;
+    all[id]={x:Math.max(0,Math.round((parseInt(el.style.left)||0)/(getCW()+GAP))),y:Math.max(0,Math.round((parseInt(el.style.top)||0)/(CELL+GAP))),w:Math.max(1,Math.round((parseInt(el.style.width)||wid(3)+GAP)/(getCW()+GAP))),h:Math.max(1,Math.round((parseInt(el.style.height)||hei(3)+GAP)/(CELL+GAP)))};
+  });
+  localStorage.setItem("stLayout_"+currentUser,JSON.stringify(all));
+}
+
+function showAddCountdownDialog(){
+  const label=prompt("Nome countdown:");
+  if(!label||!label.trim()) return;
+  const dateStr=prompt("Data target (YYYY-MM-DD):");
+  if(!dateStr) return;
+  const timeStr=prompt("Ora target (HH:MM, opzionale):")||"";
+  const id="cc_"+Date.now();
+  const c={id,cid:id,label:label.trim(),date:dateStr,time:timeStr};
+  customCountdowns.push(c);
+  localStorage.setItem("stCustomCD_"+currentUser, JSON.stringify(customCountdowns));
+  addCustomCountdownDOM(c);
+}
+
+function updateCustomCountdowns(){
+  const pad=n=>String(n).padStart(2,"0");
+  customCountdowns.forEach(c=>{
+    const target=new Date(c.date+(c.time?"T"+c.time+":00":"T23:59:00"));
+    const diff=Math.max(0,Math.floor((target-new Date())/1000));
+    const d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
+    const el=document.querySelector(`[data-widget-id="${c.cid}"]`);
+    if(!el) return;
+    const g=id=>el.querySelector("#"+c.cid+"_"+id);
+    if(g("d")) g("d").textContent=pad(d);
+    if(g("h")) g("h").textContent=pad(h);
+    if(g("m")) g("m").textContent=pad(m);
+    if(g("s")) g("s").textContent=pad(s);
+  });
+}
+
+document.addEventListener("click", e => {
+  const del=e.target.closest(".cc-del");
+  if(!del) return;
+  const cid=del.dataset.cid;
+  const idx=customCountdowns.findIndex(c=>c.cid===cid);
+  if(idx>-1) customCountdowns.splice(idx,1);
+  localStorage.setItem("stCustomCD_"+currentUser, JSON.stringify(customCountdowns));
+  const el=document.querySelector(`[data-widget-id="${cid}"]`);
+  if(el) el.remove();
+  const saved=JSON.parse(localStorage.getItem("stLayout_"+currentUser)||"{}");
+  delete saved[cid];
+  localStorage.setItem("stLayout_"+currentUser,JSON.stringify(saved));
+});
+
+document.getElementById("addCdBtn").addEventListener("click", showAddCountdownDialog);
+
+// ----------------------------------------------
 // INIT
-// ══════════════════════════════════════════════
+// ----------------------------------------------
 async function init() {
+  // One-time data reset for v1.0.2
+  if (!localStorage.getItem('stReset102')) {
+    localStorage.removeItem('stageTrackerDBv2');
+    localStorage.removeItem('stLastVer');
+    localStorage.setItem('stReset102', '1');
+  }
+
+  initSupabase();
+  showChangelog();
+
   // Register service worker (only works on localhost or HTTPS)
   if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
     try {
@@ -2418,6 +3116,7 @@ async function init() {
   const db = getDB();
   if (db.currentUser && db.users[db.currentUser]) {
     await initSession(db.currentUser);
+    loadFollows();
   } else {
     showScreen('loginScreen');
   }
@@ -2430,11 +3129,22 @@ document.getElementById('showRegBtn').addEventListener('click', ()=>{ document.g
 document.getElementById('showLoginBtn').addEventListener('click', ()=>{ document.getElementById('registerErr').textContent=''; showScreen('loginScreen'); });
 document.getElementById('logoutBtn').addEventListener('click', logout);
 document.getElementById('leaderboardBtn').addEventListener('click', openLeaderboard);
+document.getElementById('chatBtn').addEventListener('click', openChat);
+document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMessage(); });
 document.getElementById('statsBtn').addEventListener('click', openStats);
 document.getElementById('autoStartBtn').addEventListener('click', setupAutoStart);
+document.getElementById('checkUpdatesBtn').addEventListener('click', () => {
+  if (window.electronAPI && window.electronAPI.checkUpdates) {
+    window.electronAPI.checkUpdates();
+  } else {
+    showToast('Usa il menu del tray per verificare aggiornamenti');
+  }
+});
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('settingsCancel').addEventListener('click', closeSettings);
 document.getElementById('settingsSave').addEventListener('click', saveSettings);
+document.getElementById('retryBtn').addEventListener('click', () => { document.getElementById('retryBar').style.display='none'; if (currentUser) { initSession(currentUser); } });
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
 document.getElementById('regPass2').addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
 
@@ -2447,5 +3157,26 @@ window.addEventListener('resize', () => {
 init();
 setInterval(updateDisplay, 200);
 </script>
+
+<!-- CHANGELOG OVERLAY -->
+<div class="overlay" id="changelogOverlay" style="display:none">
+  <div class="modal" id="changelogModal">
+    <div class="modal-h"><span data-tkey="changelog.title">Novit� dell'aggiornamento</span></div>
+    <div class="modal-b" id="changelogBody"></div>
+    <button class="btn btn-pri" id="changelogBtn" data-tkey="changelog.btn">Continua</button>
+  </div>
+</div>
+
+<!-- UPDATE OVERLAY -->
+<div id="updateOverlay">
+  <div class="uo-card">
+    <span class="uo-icon">&#9200;</span>
+    <div class="uo-text">Aggiornamento in corso...</div>
+    <div class="uo-sub" id="uoCountdown">Riavvio tra 10 secondi</div>
+    <div class="uo-bar-wrap"><div class="uo-bar"></div></div>
+  </div>
+</div>
+
 </body>
 </html>
+

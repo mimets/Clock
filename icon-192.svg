@@ -1,14 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f0f2e"/>
+      <stop offset="100%" stop-color="#1a1a4a"/>
+    </linearGradient>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#4f8cff"/>
       <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
   </defs>
-  <rect width="192" height="192" rx="36" fill="#0f0f2e"/>
+  <rect width="192" height="192" rx="36" fill="url(#bg)"/>
+  <circle cx="96" cy="96" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
   <circle cx="96" cy="96" r="56" fill="none" stroke="url(#g)" stroke-width="4"/>
-  <line x1="96" y1="96" x2="96" y2="58" stroke="#fff" stroke-width="4" stroke-linecap="round" transform="rotate(30,96,96)"/>
-  <line x1="96" y1="96" x2="96" y2="58" stroke="#fff" stroke-width="3" stroke-linecap="round" transform="rotate(90,96,96)"/>
-  <line x1="96" y1="96" x2="96" y2="66" stroke="#4f8cff" stroke-width="2" stroke-linecap="round" transform="rotate(180,96,96)"/>
-  <circle cx="96" cy="96" r="3" fill="#4f8cff"/>
+  <circle cx="96" cy="96" r="2" fill="#4f8cff"/>
+  <line x1="96" y1="96" x2="96" y2="54" stroke="#fff" stroke-width="4.5" stroke-linecap="round" transform="rotate(30,96,96)"/>
+  <line x1="96" y1="96" x2="96" y2="54" stroke="#fff" stroke-width="3" stroke-linecap="round" transform="rotate(90,96,96)"/>
+  <line x1="96" y1="96" x2="96" y2="62" stroke="#4f8cff" stroke-width="2" stroke-linecap="round" transform="rotate(180,96,96)"/>
+  <circle cx="96" cy="96" r="3.5" fill="#4f8cff"/>
+  <text x="96" y="152" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="rgba(255,255,255,0.3)" letter-spacing="2">STAGE</text>
 </svg>

@@ -1,10 +1,11 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.0",
+  "version": "1.0.15",
   "description": "Stage Tracker - traccia il tuo stage",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "prebuild": "node scripts/make-icon.mjs",
     "build": "electron-builder --win --x64",
     "release": "electron-builder --win --x64 --publish always"
   },
@@ -12,7 +13,7 @@
     "appId": "com.stagetracker.app",
     "productName": "Stage Tracker",
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "files": [
       "index.html",
@@ -27,13 +28,25 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
         }
       ],
+      "icon": "build/icon.ico",
+      "sign": null,
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false,
       "artifactName": "StageTracker-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     },
     "publish": {
       "provider": "github",
@@ -46,9 +59,13 @@
     "@electron/asar": "^4.2.0",
     "electron": "^33.0.0",
     "electron-builder": "^25.0.0",
-    "electron-packager": "^17.1.2"
+    "electron-packager": "^17.1.2",
+    "png-to-ico": "^3.0.1"
   },
   "dependencies": {
     "electron-updater": "^6.8.9"
   }
 }
+
+
+
