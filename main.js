@@ -125,27 +125,28 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     mainWindow.close();
 
-    // Write a PowerShell script that:
+    // Write a CMD batch script that:
     //   1. Waits for our process to fully exit
     //   2. Runs the installer silently
     //   3. Launches the new app
-    const scriptPath = path.join(app.getPath('userData'), 'update.ps1');
+    const scriptPath = path.join(app.getPath('userData'), 'update.cmd');
     const appExe = app.getPath('exe');
-    const psScript = [
-      '$pid = ' + process.pid,
-      'Write-Output "Waiting for process $pid to exit..."',
-      'while ((Get-Process -Id $pid -ErrorAction SilentlyContinue)) { Start-Sleep -Milliseconds 200 }',
-      'Write-Output "Process exited, running installer..."',
-      'Start-Process "' + exePath.replace(/\\/g, '\\\\') + '" -ArgumentList "/S" -Wait -NoNewWindow',
-      'Write-Output "Installer done, launching app..."',
-      'Start-Process "' + appExe.replace(/\\/g, '\\\\') + '"',
-      'Remove-Item "' + scriptPath.replace(/\\/g, '\\\\') + '"'
-    ].join('\n');
-    fs.writeFileSync(scriptPath, psScript, 'utf8');
+    const cmdScript = '@echo off\r\n' +
+      'set PID=' + process.pid + '\r\n' +
+      ':wait\r\n' +
+      'tasklist /fi "PID eq %PID%" 2>nul | find "%PID%" >nul\r\n' +
+      'if not errorlevel 1 (\r\n' +
+      '  timeout /t 1 /nobreak >nul\r\n' +
+      '  goto wait\r\n' +
+      ')\r\n' +
+      'start /wait "" "' + exePath.replace(/\\/g, '\\\\') + '" /S\r\n' +
+      'start "" "' + appExe.replace(/\\/g, '\\\\') + '"\r\n' +
+      'del "%~f0"';
+    fs.writeFileSync(scriptPath, cmdScript, 'utf8');
     dbg('update script written: ' + scriptPath);
 
-    // Launch the PowerShell script detached, then exit
-    spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
+    // Launch the CMD script detached, then exit
+    spawn('cmd.exe', ['/C', scriptPath], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true
