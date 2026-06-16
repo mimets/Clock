@@ -125,32 +125,35 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     mainWindow.close();
 
-    // Give the window a moment to close, then launch installer and quit
-    await new Promise(r => setTimeout(r, 300));
+    // Write a PowerShell script that:
+    //   1. Waits for our process to fully exit
+    //   2. Runs the installer silently
+    //   3. Launches the new app
+    const scriptPath = path.join(app.getPath('userData'), 'update.ps1');
+    const appExe = app.getPath('exe');
+    const psScript = [
+      '$pid = ' + process.pid,
+      'Write-Output "Waiting for process $pid to exit..."',
+      'while ((Get-Process -Id $pid -ErrorAction SilentlyContinue)) { Start-Sleep -Milliseconds 200 }',
+      'Write-Output "Process exited, running installer..."',
+      'Start-Process "' + exePath.replace(/\\/g, '\\\\') + '" -ArgumentList "/S" -Wait -NoNewWindow',
+      'Write-Output "Installer done, launching app..."',
+      'Start-Process "' + appExe.replace(/\\/g, '\\\\') + '"',
+      'Remove-Item "' + scriptPath.replace(/\\/g, '\\\\') + '"'
+    ].join('\n');
+    fs.writeFileSync(scriptPath, psScript, 'utf8');
+    dbg('update script written: ' + scriptPath);
 
-    try {
-      const child = spawn(exePath, ['/S'], {
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true,
-        shell: false
-      });
-      child.unref();
-      child.on('error', (e) => {
-        dbg('spawn error: ' + e.message);
-        // Fallback: try with cmd /c start
-        exec('start "" "' + exePath + '" /S', (err) => {
-          if (err) dbg('exec fallback error: ' + err.message);
-        });
-      });
-    } catch (spawnErr) {
-      dbg('spawn exception: ' + spawnErr.message);
-      // Fallback
-      exec('start "" "' + exePath + '" /S', () => {});
-    }
+    // Launch the PowerShell script detached, then exit
+    spawn('powershell.exe', ['-ExecutionPolicy', 'Bypass', '-File', scriptPath], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true
+    }).unref();
 
-    // Small delay then quit
-    setTimeout(() => app.quit(), 500);
+    // Give PowerShell a moment to start, then quit
+    await new Promise(r => setTimeout(r, 1000));
+    app.quit();
   } catch (err) {
     dbg('update error: ' + err.message);
     isDownloading = false;
