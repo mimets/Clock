@@ -201,6 +201,20 @@ ipcMain.on('restart-app', () => {
 
 ipcMain.on('delay-restart', () => {});
 
+const dbFilePath = () => path.join(app.getPath('userData'), 'stagedb.json');
+
+ipcMain.handle('read-filedb', () => {
+  try {
+    const p = dbFilePath();
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+    return null;
+  } catch(_) { return null; }
+});
+
+ipcMain.handle('write-filedb', (_e, data) => {
+  try { fs.writeFileSync(dbFilePath(), JSON.stringify(data), 'utf8'); return true; } catch(_) { return false; }
+});
+
 app.on('ready', () => {
   ipcMain.handle('set-auto-start', async () => {
     try { app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') }); return true; } catch(e) { return false; }
