@@ -206,7 +206,7 @@ app.on('ready', () => {
   });
   ipcMain.on('check-updates', () => checkForUpdates());
   createWindow();
-  // Don't auto-check on startup — only when user clicks button
+  setTimeout(checkForUpdates, 3000);
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
