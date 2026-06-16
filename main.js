@@ -166,7 +166,7 @@ async function checkForUpdates() {
   try {
     // Use raw GitHub file (no rate limit) instead of API
     const currentVer = getCurrentVer();
-    const url = 'https://raw.githubusercontent.com/mimets/Clock/master/version.txt';
+    const url = 'https://raw.githubusercontent.com/mimets/Clock/refs/heads/master/version.txt';
     const { status, body } = await httpsGet(url);
 
     if (status !== 200) {
