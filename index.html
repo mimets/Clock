@@ -12,17 +12,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#111214;--bg2:#1a1b1e;--sidebar:#0b0b0e;--sidebar-hover:#1e1f22;--sidebar-active:#2b2d31;--primary:#4f8cff;--accent:#a855f7;--primary-dim:rgba(79,140,255,0.12);--accent-dim:rgba(168,85,247,0.12);--success:#4fff96;--warn:#fbbf24;--danger:#f87171;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.06);--text:#f0f2f5;--text2:#9ba3af;--radius:12px;--rs:8px;--rss:6px;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--shadow:0 4px 24px rgba(0,0,0,0.3);--chat-bg:#0e0f12;--chat-input:#1e1f22;--blob1:#4f8cff;--blob2:#a855f7;--blob3:#06b6d4;transition:--primary .6s,--accent .6s,--bg .6s,--bg2 .6s,--sidebar .6s,--blob1 .6s,--blob2 .6s,--blob3 .6s}
+:root{--bg:#070715;--bg2:#0c0c24;--sidebar:#0a0a1e;--sidebar-hover:rgba(255,255,255,0.06);--sidebar-active:rgba(79,140,255,0.15);--primary:#4f8cff;--accent:#a855f7;--primary-dim:rgba(79,140,255,0.12);--accent-dim:rgba(168,85,247,0.12);--success:#4fff96;--warn:#fbbf24;--danger:#f87171;--card:rgba(255,255,255,0.035);--card-border:rgba(255,255,255,0.06);--text:#ffffff;--text2:rgba(255,255,255,0.42);--dim:rgba(255,255,255,0.42);--radius:24px;--rs:12px;--rss:8px;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--shadow:0 8px 32px rgba(0,0,0,0.37);--glow:0 0 60px rgba(79,140,255,0.06);--chat-bg:#08081a;--chat-input:rgba(255,255,255,0.035);--blob1:#4f8cff;--blob2:#a855f7;--blob3:#06b6d4;transition:--primary .6s,--accent .6s,--bg .6s,--bg2 .6s,--sidebar .6s,--blob1 .6s,--blob2 .6s,--blob3 .6s}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden;display:flex}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:0 0}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
 .bg-anim{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.bg-anim .blob{position:absolute;border-radius:50%;filter:blur(120px);opacity:0.05;animation:blobMove 30s ease-in-out infinite alternate}
-.bg-anim .blob:nth-child(1){width:600px;height:600px;top:-30%;left:-20%;animation-duration:35s;background:var(--blob1)}
-.bg-anim .blob:nth-child(2){width:450px;height:450px;bottom:-25%;right:-20%;animation-duration:28s;animation-delay:-8s;background:var(--blob2)}
-.bg-anim .blob:nth-child(3){width:350px;height:350px;top:40%;left:50%;animation-duration:32s;animation-delay:-15s;opacity:0.04;background:var(--blob3)}
-@keyframes blobMove{0%{transform:translate(0,0) scale(1)}33%{transform:translate(80px,-60px) scale(1.12)}66%{transform:translate(-60px,80px) scale(.88)}100%{transform:translate(40px,-30px) scale(1.05)}}
+.bg-anim .blob{position:absolute;border-radius:50%;filter:blur(100px);opacity:0.08;animation:blobMove 25s ease-in-out infinite alternate}
+.bg-anim .blob:nth-child(1){width:700px;height:700px;top:-20%;left:-15%;animation-duration:30s;background:var(--blob1)}
+.bg-anim .blob:nth-child(2){width:550px;height:550px;bottom:-20%;right:-15%;animation-duration:25s;animation-delay:-7s;background:var(--blob2)}
+.bg-anim .blob:nth-child(3){width:450px;height:450px;top:35%;left:45%;animation-duration:28s;animation-delay:-14s;opacity:0.06;background:var(--blob3)}
+@keyframes blobMove{0%{transform:translate(0,0) scale(1)}33%{transform:translate(100px,-80px) scale(1.15)}66%{transform:translate(-80px,100px) scale(.85)}100%{transform:translate(50px,-40px) scale(1.08)}}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:64px 64px}
+.glass{background:var(--card);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow),var(--glow);transition:border-color .4s,box-shadow .4s,background .4s,transform .2s}
+.glass:hover{border-color:rgba(255,255,255,0.12);box-shadow:var(--shadow),0 0 70px rgba(79,140,255,0.08)}
+.dash-widget:hover{transform:translateY(-2px)}
 .app-layout{display:flex;width:100vw;height:100vh;position:relative;z-index:1}
 .sidebar{width:64px;background:var(--sidebar);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.04)}
 .sidebar-logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px;cursor:pointer}
@@ -53,8 +57,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sync-dot.error{background:var(--danger)}
 .auth-screen{align-items:center;justify-content:center;background:var(--sidebar);position:fixed;inset:0;z-index:10;display:none;flex-direction:column}
 .auth-screen.active{display:flex}
-.auth-card{padding:40px 36px;max-width:380px;width:90%;text-align:center;background:var(--bg2);border:1px solid var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow);animation:fadeUp .5s ease}
-.auth-icon{font-size:48px;margin-bottom:6px;display:block}
+.auth-card{padding:40px 36px;max-width:380px;width:90%;text-align:center;background:var(--card);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow),var(--glow);animation:fadeUp .5s ease}
+.auth-icon{font-size:52px;margin-bottom:6px;display:block}
 .auth-title{font-size:24px;font-weight:800;margin-bottom:4px;letter-spacing:-.4px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .auth-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.5}
 .fg{text-align:left;margin-bottom:12px}
@@ -69,6 +73,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-ghost{background:transparent;color:var(--text2);font-size:13px;font-weight:500}
 .btn-ghost:hover{color:var(--text)}
 .btn-sm{padding:6px 12px;font-size:12px}
+.btn-sec{background:rgba(255,255,255,0.04);border:1px solid var(--card-border);color:var(--text2)}
 .btn-full{width:100%}
 .auth-err{font-size:12px;color:var(--danger);min-height:18px;margin-top:8px}
 #toastContainer{position:fixed;bottom:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
@@ -77,8 +82,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 @keyframes toastIn{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(12px)}}
 .dash-body{flex:1;display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:80px;gap:12px;padding:2px 0}
-.dash-widget{border-radius:var(--rs);background:var(--card);border:1px solid var(--card-border);overflow:hidden;animation:fadeUp .4s ease both}
+.dash-widget{border-radius:var(--rs);background:var(--card);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid var(--card-border);overflow:hidden;animation:fadeUp .4s ease both;transition:all .25s}
+.dash-widget:hover{border-color:rgba(255,255,255,0.12)}
 .dash-widget .dw-inner{padding:14px 18px;height:100%;overflow-y:auto}
+.pcard,.scard,.mcard{height:100%}
 .clock-wrap{display:flex;justify-content:center}
 #clockCanvas{width:200px;height:200px}
 .date-info{text-align:center;font-size:11px;color:var(--text2);margin-top:-2px}
@@ -117,6 +124,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sc-remaining{color:var(--text2)}
 .sc-live{display:flex;align-items:center;gap:6px;padding:4px 0;margin-bottom:2px;border-top:1px solid rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.03)}
 .sc-live-icon{font-size:12px}
+.sc-live-info{flex:1}
 .sc-live-label{font-size:9px;color:var(--text2);font-weight:500}
 .sc-live-time{font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;letter-spacing:.4px}
 .mc-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
@@ -153,6 +161,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .chat-channel-info{flex:1;min-width:0}
 .chat-channel-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-channel-status{font-size:10px;color:var(--text2);margin-top:1px}
+.chat-sidebar-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);padding:12px 14px 4px}
 .chat-channel-badge{min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
 .chat-main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chat-bg)}
 .chat-main-h{padding:12px 18px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -210,7 +219,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .follow-btn{padding:3px 8px;border-radius:var(--rss);border:1px solid var(--card-border);font-size:9px;font-weight:600;cursor:pointer;font-family:var(--font);flex-shrink:0;transition:all .2s;background:transparent;color:var(--text2)}
 .follow-btn:hover{border-color:var(--primary)}
 .follow-btn.following{background:var(--primary-dim);color:var(--primary);border-color:var(--primary)}
-.setting-card{padding:16px 20px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--rs);margin-bottom:12px}
+.setting-card{padding:16px 20px;background:var(--card);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--card-border);border-radius:var(--rs);margin-bottom:12px}
 .setting-label{font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .stabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);border-radius:8px;padding:4px}
 .stab{flex:1;padding:7px 10px;border:none;border-radius:var(--rss);background:transparent;color:var(--text2);font-size:10px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.3px}
@@ -241,12 +250,14 @@ spanel.active{display:block;animation:fadeUp .2s ease}
 .hol-row:hover{background:rgba(255,255,255,0.02)}
 .hol-row input[type=checkbox]{width:13px;height:13px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
 .hol-row label{font-size:11px;color:var(--text2);cursor:pointer;flex:1}
+.hol-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);margin:10px 0 6px}
+.holiday-list{display:flex;flex-direction:column;gap:2px}
 .hol-row.hol-disabled{opacity:.35}
 .settings-btns{display:flex;gap:10px;margin-top:16px}
 .settings-btns button{flex:1;padding:10px;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;transition:opacity .2s;font-family:var(--font)}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.active{display:flex}
-.modal-c{background:var(--bg2);border:1px solid var(--card-border);border-radius:var(--radius);width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);animation:fadeUp .25s ease}
+.modal-c{background:rgba(12,12,36,0.96);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid var(--card-border);border-radius:var(--radius);width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);animation:fadeUp .25s ease}
 .modal-inner{padding:24px 24px 20px}
 .modal-c h2{font-size:18px;font-weight:700;margin-bottom:2px}
 .modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
@@ -283,6 +294,7 @@ spanel.active{display:block;animation:fadeUp .2s ease}
 <body>
 
 <div class="bg-anim"><div class="blob"></div><div class="blob"></div><div class="blob"></div></div>
+<div class="bg-grid"></div>
 <canvas id="confettiCanvas"></canvas>
 <div id="toastContainer"></div>
 
@@ -513,6 +525,7 @@ function isWorkingDay(d){const day=d.getDay();return config.workingDays&&config.
 function getDayMinutes(){return(timeToMin(config.morningEnd)-timeToMin(config.morningStart))+(timeToMin(config.afternoonEnd)-timeToMin(config.afternoonStart))}
 function getMinInDay(d){const n=d||new Date();const p=getPhase(n);if(p.id==="before"||p.id==="weekend"||p.id==="done")return 0;let m=0;const ms=timeToMin(config.morningStart),me=timeToMin(config.morningEnd),as=timeToMin(config.afternoonStart),ae=timeToMin(config.afternoonEnd);const nm=n.getHours()*60+n.getMinutes();if(nm>ms&&p.id!=="before")m+=Math.min(nm,me)-ms;if(nm>as)m+=Math.min(nm,ae)-as;return Math.max(0,m)}
 function workingMinBetween(s,e){if(!s||!e)return 0;let t=0;const d=new Date(s);while(d<e){if(isWorkingDay(d))t+=getDayMinutes();d.setDate(d.getDate()+1)}return t}
+function elapsedWorkingMin(s,e){if(!s||!e)return 0;let t=0;const sd=new Date(s),ed=new Date(e);const sDay=new Date(sd.getFullYear(),sd.getMonth(),sd.getDate()),eDay=new Date(ed.getFullYear(),ed.getMonth(),ed.getDate());if(sDay.getTime()===eDay.getTime()){if(isWorkingDay(sd))t+=getMinInDay(ed)-getMinInDay(sd);return Math.max(0,t)}if(isWorkingDay(sd))t+=getDayMinutes()-getMinInDay(sd);const d=new Date(sDay);d.setDate(d.getDate()+1);while(d<eDay){if(isWorkingDay(d))t+=getDayMinutes();d.setDate(d.getDate()+1)}if(isWorkingDay(ed))t+=getMinInDay(ed);return t}
 function getPhase(n){const d=new Date(n),day=d.getDay();if(!isWorkingDay(d))return{id:"weekend",icon:"\uD83C\uDF34",key:"phase.weekend"};const m=d.getHours()*60+d.getMinutes(),ms=timeToMin(config.morningStart),me=timeToMin(config.morningEnd),as=timeToMin(config.afternoonStart),ae=timeToMin(config.afternoonEnd);if(m<ms)return{id:"before",icon:"\uD83C\uDF05",key:"phase.before"};if(m<me)return{id:"morning",icon:"\u2600\uFE0F",key:"phase.morning"};if(m<as)return{id:"lunch",icon:"\uD83C\uDF5D",key:"phase.lunch"};if(m<ae)return{id:"afternoon",icon:"\uD83C\uDF24",key:"phase.afternoon"};return{id:"done",icon:"\uD83C\uDF89",key:"phase.done"}}
 function getNextTransition(n){const d=new Date(n),m=d.getHours()*60+d.getMinutes(),ms=timeToMin(config.morningStart),me=timeToMin(config.morningEnd),as=timeToMin(config.afternoonStart),ae=timeToMin(config.afternoonEnd);const p=getPhase(n);if(p.id==="weekend")return{t:d.getTime()+86400000,k:"next.morning",diff:86400000};if(p.id==="done")return null;let t,k;if(m<ms){t=new Date(d);t.setHours(Math.floor(ms/60),ms%60,0,0);k="next.morning"}else if(m<me){t=new Date(d);t.setHours(Math.floor(me/60),me%60,0,0);k="next.lunch"}else if(m<as){t=new Date(d);t.setHours(Math.floor(as/60),as%60,0,0);k="next.afternoon"}else{t=new Date(d);t.setHours(Math.floor(ae/60),ae%60,0,0);k="next.done"}if(t<=d&&k==="next.done")return null;return{t:t.getTime(),k:k,diff:t.getTime()-d.getTime()}}
 function getWeekDates(n){const d=new Date(n),day=d.getDay(),mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));const days=[];for(let i=0;i<7;i++){const w=new Date(mon);w.setDate(mon.getDate()+i);days.push(w)}return days}
@@ -520,7 +533,7 @@ function getMonthStats(n){const y=n.getFullYear(),m=n.getMonth(),end=new Date(y,
 function getWorkDaysToEnd(n,end){if(!end)return 0;let c=0;const d=new Date(n);d.setDate(d.getDate()+1);d.setHours(0,0,0,0);while(d<end){if(isWorkingDay(d))c++;d.setDate(d.getDate()+1)}return c}
 function getRemainingWorkSeconds(n,end){if(!end||n>=end)return 0;const days=getWorkDaysToEnd(n,end);const p=getPhase(n);let ts=0;if(isWorkingDay(n)&&p.id!=="done"){const me=timeToMin(config.morningEnd),ae=timeToMin(config.afternoonEnd),nm=n.getHours()*60+n.getMinutes();if(nm<me)ts+=Math.max(0,(me-nm)*60);if(nm<timeToMin(config.afternoonStart))ts+=(ae-timeToMin(config.afternoonStart))*60;if(nm>=timeToMin(config.afternoonStart)&&nm<ae)ts+=Math.max(0,(ae-nm)*60)}return days*getDayMinutes()*60+ts}
 function updateDisplay(){if(!currentUser||!document.getElementById("dashboard").classList.contains("active"))return;const n=new Date(),p=getPhase(n);const $=id=>document.getElementById(id);if($("phaseIcon"))$("phaseIcon").textContent=p.icon;if($("phaseLabel")){$("phaseLabel").textContent=tr(p.key);$("phaseLabel").className="sc-phase"+(p.id==="lunch"?" lunch":p.id==="done"?" done":"")}if($("todayNum")&&isWorkingDay(n)){const m=getMinInDay(n);$("todayNum").textContent=Math.floor(m/60)+"h "+m%60+"m"}else if($("todayNum"))$("todayNum").textContent="--";if($("todayBarFill")&&isWorkingDay(n)){const pct=Math.min(100,getMinInDay(n)/getDayMinutes()*100);$("todayBarFill").style.width=pct+"%"}else if($("todayBarFill"))$("todayBarFill").style.width="0%";if($("liveSection")){const nx=getNextTransition(n);if(nx){$("liveSection").style.display="flex";if($("liveLabel"))$("liveLabel").textContent=tr(nx.k);const s=Math.floor(nx.diff/1000);if($("liveTime"))$("liveTime").textContent=String(Math.floor(s/3600)).padStart(2,"0")+":"+String(Math.floor((s%3600)/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}else{$("liveSection").style.display="none"}}if($("todayRemaining")&&isWorkingDay(n)){const l=Math.max(0,getDayMinutes()-getMinInDay(n));$("todayRemaining").textContent=Math.floor(l/60)+"h "+l%60+"m "+tr("dash.remaining")}else if($("todayRemaining"))$("todayRemaining").textContent="";drawClock();updateProgress();updateCountdown();updateMonitor()}
-function updateProgress(){if(!startDate||!endDate)return;const n=new Date();if(n>=endDate){if(!hasTriggered100){document.getElementById("pctDisplay").textContent="100%";document.getElementById("pbFill").style.width="100%";hasTriggered100=true}return}const t=workingMinBetween(startDate,endDate);if(t<=0)return;const e=workingMinBetween(startDate,n);const tp=Math.min(100,Math.round(e/t*100));if(tp!==prevTargetPct){prevTargetPct=tp;const el=document.getElementById("elapsedLabel");if(el)el.innerHTML=Math.floor(e/60)+"h "+(e%60)+"m <span data-tkey=\"dash.worked\">lavorate</span>";animatePct(tp)}}
+function updateProgress(){if(!startDate||!endDate)return;const n=new Date();if(n>=endDate){if(!hasTriggered100){document.getElementById("pctDisplay").textContent="100%";document.getElementById("pbFill").style.width="100%";hasTriggered100=true}return}const t=workingMinBetween(startDate,endDate);if(t<=0)return;const e=elapsedWorkingMin(startDate,n);const tp=Math.min(100,Math.round(e/t*100));if(tp!==prevTargetPct){prevTargetPct=tp;const el=document.getElementById("elapsedLabel");if(el)el.innerHTML=Math.floor(e/60)+"h "+(e%60)+"m <span data-tkey=\"dash.worked\">lavorate</span>";animatePct(tp)}}
 function animatePct(t){if(pctAnimeId)cancelAnimationFrame(pctAnimeId);const s=animPct,dur=600,t0=performance.now();function step(tm){const p=Math.min(1,(tm-t0)/dur),v=s+(t-s)*(1-Math.pow(1-p,3));animPct=v;document.getElementById("pctDisplay").textContent=Math.round(v)+"%";document.getElementById("pbFill").style.width=v+"%";checkMilestones(v);if(p<1)pctAnimeId=requestAnimationFrame(step)}pctAnimeId=requestAnimationFrame(step)}
 function updateCountdown(){if(!endDate)return;const n=new Date();if(n>=endDate){document.getElementById("completedView").style.display="block";return}const d=endDate-n;const $=id=>document.getElementById(id);$("cdDays").textContent=String(Math.floor(d/86400000)).padStart(2,"0");$("cdHours").textContent=String(Math.floor((d%86400000)/3600000)).padStart(2,"0");$("cdMins").textContent=String(Math.floor((d%3600000)/60000)).padStart(2,"0");$("cdSecs").textContent=String(Math.floor((d%60000)/1000)).padStart(2,"0");const wr=getRemainingWorkSeconds(n,endDate);$("wdDays").textContent=String(Math.floor(wr/86400)).padStart(2,"0");$("wdHours").textContent=String(Math.floor((wr%86400)/3600)).padStart(2,"0");$("wdMins").textContent=String(Math.floor((wr%3600)/60)).padStart(2,"0");$("wdSecs").textContent=String(wr%60).padStart(2,"0")}
 function updateMonitor(){const n=new Date(),ms=getMonthStats(n);document.getElementById("monthStats").textContent="Fine mese: "+ms.calDays+"g ("+ms.workDays+" lav.)";const wd=getWeekDates(n),bars=document.getElementById("weekBars");if(!bars)return;const mm=getDayMinutes();bars.innerHTML=wd.map(d=>{const t=d.toDateString()===n.toDateString();const m=t?getMinInDay(n):(isWorkingDay(d)?getDayMinutes():0);const pct=mm>0?Math.min(100,m/mm*100):0;return'<div class="mc-row"><span class="mc-dn">'+["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()]+'</span><div class="mc-bw"><div class="mc-bf" style="width:'+pct+'%"></div></div><span class="mc-h">'+Math.floor(m/60)+'h</span></div>'}).join("")}
