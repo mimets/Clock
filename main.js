@@ -125,28 +125,34 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     mainWindow.close();
 
-    // Write a CMD batch script that:
-    //   1. Waits for our process to fully exit
+    // Write a VBScript (no console window) that:
+    //   1. Waits for our process to fully exit via WMI
     //   2. Runs the installer silently
     //   3. Launches the new app
-    const scriptPath = path.join(app.getPath('userData'), 'update.cmd');
+    //   4. Deletes itself
+    const scriptPath = path.join(app.getPath('userData'), 'update.vbs');
     const appExe = app.getPath('exe');
-    const cmdScript = '@echo off\r\n' +
-      'set PID=' + process.pid + '\r\n' +
-      ':wait\r\n' +
-      'tasklist /fi "PID eq %PID%" 2>nul | find "%PID%" >nul\r\n' +
-      'if not errorlevel 1 (\r\n' +
-      '  timeout /t 1 /nobreak >nul\r\n' +
-      '  goto wait\r\n' +
-      ')\r\n' +
-      'start /wait "" "' + exePath.replace(/\\/g, '\\\\') + '" /S\r\n' +
-      'start "" "' + appExe.replace(/\\/g, '\\\\') + '"\r\n' +
-      'del "%~f0"';
-    fs.writeFileSync(scriptPath, cmdScript, 'utf8');
+    const vbsScript = 
+      'Dim WshShell, pid, installer, appExePath\r\n' +
+      'Set WshShell = CreateObject("WScript.Shell")\r\n' +
+      'pid = ' + process.pid + '\r\n' +
+      'installer = "' + exePath.replace(/\\/g, '\\\\') + '"\r\n' +
+      'appExePath = "' + appExe.replace(/\\/g, '\\\\') + '"\r\n' +
+      'Set objWMIService = GetObject("winmgmts:\\\\.\\root\\cimv2")\r\n' +
+      'Do\r\n' +
+      '  Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " & pid)\r\n' +
+      '  If colProcessList.Count = 0 Then Exit Do\r\n' +
+      '  WScript.Sleep 1000\r\n' +
+      'Loop\r\n' +
+      'WshShell.Run chr(34) & installer & chr(34) & " /S", 0, True\r\n' +
+      'WshShell.Run chr(34) & appExePath & chr(34), 0, False\r\n' +
+      'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
+      'fso.DeleteFile WScript.ScriptFullName';
+    fs.writeFileSync(scriptPath, vbsScript, 'utf8');
     dbg('update script written: ' + scriptPath);
 
-    // Launch the CMD script detached, then exit
-    spawn('cmd.exe', ['/C', scriptPath], {
+    // Launch via wscript.exe (no console window)
+    spawn('wscript.exe', [scriptPath], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true

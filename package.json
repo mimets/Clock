@@ -1,6 +1,6 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Stage Tracker - traccia il tuo stage",
   "main": "main.js",
   "scripts": {
@@ -64,9 +64,7 @@
     "png-to-ico": "^3.0.1"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "pg": "^8.21.0"
   }
 }
-
-
-
