@@ -2,7 +2,7 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification } = r
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 
 process.env.ELECTRON_DISABLE_FFMPEG = '1';
 if (app.commandLine) {
@@ -106,6 +106,10 @@ async function doUpdate() {
     await downloadFile(exeUrl, exePath);
     dbg('installer downloaded, size: ' + fs.statSync(exePath).size);
 
+    // Verify it's actually an EXE (not a 404 HTML page)
+    const header = fs.readFileSync(exePath, { encoding: null }).slice(0, 2);
+    if (header[0] !== 0x4D || header[1] !== 0x5A) throw new Error('Downloaded file is not a valid executable (missing MZ header)');
+
     send('update-downloaded', { version: updateVersion });
     send('restart-countdown', { seconds: 5 });
 
@@ -117,8 +121,36 @@ async function doUpdate() {
 
     dbg('launching installer: ' + exePath);
     app.isQuitting = true;
-    spawn(exePath, ['/S'], { detached: true, stdio: 'ignore' }).unref();
-    app.quit();
+
+    // Close all windows first so the installer can overwrite files
+    mainWindow.close();
+
+    // Give the window a moment to close, then launch installer and quit
+    await new Promise(r => setTimeout(r, 300));
+
+    try {
+      const child = spawn(exePath, ['/S'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+        shell: false
+      });
+      child.unref();
+      child.on('error', (e) => {
+        dbg('spawn error: ' + e.message);
+        // Fallback: try with cmd /c start
+        exec('start "" "' + exePath + '" /S', (err) => {
+          if (err) dbg('exec fallback error: ' + err.message);
+        });
+      });
+    } catch (spawnErr) {
+      dbg('spawn exception: ' + spawnErr.message);
+      // Fallback
+      exec('start "" "' + exePath + '" /S', () => {});
+    }
+
+    // Small delay then quit
+    setTimeout(() => app.quit(), 500);
   } catch (err) {
     dbg('update error: ' + err.message);
     isDownloading = false;
