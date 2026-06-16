@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onRestartCountdown: (callback) => { ipcRenderer.on('restart-countdown', (_e, info) => callback(info)); },
   restartApp: () => ipcRenderer.send('restart-app'),
   readFileDB: () => ipcRenderer.invoke('read-filedb'),
-  writeFileDB: (data) => ipcRenderer.invoke('write-filedb', data)
+  writeFileDB: (data) => ipcRenderer.invoke('write-filedb', data),
+  checkDbTables: () => ipcRenderer.invoke('check-db-tables'),
+  migrateDb: (pw) => ipcRenderer.invoke('migrate-db', pw)
 });
