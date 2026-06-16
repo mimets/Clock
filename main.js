@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -66,11 +66,17 @@ function downloadFile(url, dest) {
         }
         const file = fs.createWriteStream(dest);
         const total = parseInt(res.headers['content-length'], 10);
-        let downloaded = 0;
+        let downloaded = 0, lastEmit = 0;
         res.pipe(file);
         res.on('data', (chunk) => {
           downloaded += chunk.length;
-          if (total) send('update-progress', { percent: Math.min(99, Math.round(downloaded / total * 100)) });
+          if (total) {
+            const now = Date.now();
+            if (now - lastEmit > 200) {
+              lastEmit = now;
+              send('update-progress', { percent: Math.min(99, Math.round(downloaded / total * 100)) });
+            }
+          }
         });
         file.on('finish', () => { file.close(); resolve(); });
       }).on('error', (err) => { fs.unlink(dest, () => {}); reject(err); });
@@ -158,7 +164,7 @@ async function doUpdate() {
       windowsHide: true
     }).unref();
 
-    // Give PowerShell a moment to start, then quit
+    // Give wscript a moment to start, then quit
     await new Promise(r => setTimeout(r, 1000));
     app.quit();
   } catch (err) {
@@ -184,6 +190,13 @@ async function checkForUpdates() {
 
     const latestVer = body.trim();
     dbg('current=' + currentVer + ' latest=' + latestVer);
+
+    // Validate semver to prevent VBScript injection
+    if (!/^\d+\.\d+\.\d+$/.test(latestVer)) {
+      dbg('invalid version format: ' + latestVer);
+      send('update-error', { message: 'Versione remota non valida' });
+      return;
+    }
 
     if (verGt(latestVer, currentVer)) {
       updateVersion = latestVer;
@@ -242,15 +255,26 @@ CREATE POLICY "anon_all" ON notifications FOR ALL USING (true) WITH CHECK (true)
 
 function getDbPassword() {
   try {
-    const p = path.join(app.getPath('userData'), 'db_pass.txt');
-    if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8').trim();
+    const p = path.join(app.getPath('userData'), 'db_pass.enc');
+    if (fs.existsSync(p) && safeStorage.isEncryptionAvailable()) {
+      const buf = fs.readFileSync(p);
+      return safeStorage.decryptString(buf);
+    }
+    // Fallback per vecchia versione in plaintext
+    const old = path.join(app.getPath('userData'), 'db_pass.txt');
+    if (fs.existsSync(old)) return fs.readFileSync(old, 'utf8').trim();
   } catch(_) {}
   return null;
 }
 
 function saveDbPassword(pw) {
   try {
-    fs.writeFileSync(path.join(app.getPath('userData'), 'db_pass.txt'), pw, 'utf8');
+    const p = path.join(app.getPath('userData'), 'db_pass.enc');
+    if (safeStorage.isEncryptionAvailable()) {
+      fs.writeFileSync(p, safeStorage.encryptString(pw));
+    } else {
+      fs.writeFileSync(path.join(app.getPath('userData'), 'db_pass.txt'), pw, 'utf8');
+    }
   } catch(_) {}
 }
 
