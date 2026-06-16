@@ -1,6 +1,6 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Stage Tracker - traccia il tuo stage",
   "main": "main.js",
   "scripts": {
