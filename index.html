@@ -625,7 +625,6 @@ if(window.electronAPI){window.electronAPI.onUpdateChecking(()=>{document.getElem
   const b=document.getElementById("updateBanner");
   b.style.display="flex";
   document.getElementById("updateBannerText").innerHTML="\u274C "+tr("update.error")+(i&&i.message?" ("+i.message.split("\\n")[0].slice(0,60)+")":"");
-  setTimeout(()=>b.style.display="none",8000)
 });window.electronAPI.onRestartCountdown((i)=>{
   document.getElementById("updateOverlay").style.display="flex";
   const secs=i&&i.seconds!==undefined?i.seconds:5;
