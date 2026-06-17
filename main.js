@@ -143,26 +143,15 @@ async function doUpdate() {
     const appDir = path.dirname(appExe);
     const esc = s => s.replace(/\\/g, '\\\\');
     const vbsScript =
-      'Dim WshShell, pid, installer, appExePath, appDirPath, i, objWMIService, colProcessList, fso\r\n' +
+      'Dim WshShell, installer, appExePath, appDirPath, fso\r\n' +
       'Set WshShell = CreateObject("WScript.Shell")\r\n' +
-      'pid = ' + process.pid + '\r\n' +
       'installer = "' + esc(exePath) + '"\r\n' +
       'appExePath = "' + esc(appExe) + '"\r\n' +
       'appDirPath = "' + esc(appDir) + '"\r\n' +
-      'On Error Resume Next\r\n' +
-      'For i = 1 To 60\r\n' +
-      '  Set objWMIService = GetObject("winmgmts:\\\\.\\root\\cimv2")\r\n' +
-      '  If Err.Number = 0 Then\r\n' +
-      '    Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " & pid)\r\n' +
-      '    If colProcessList.Count = 0 Then Exit For\r\n' +
-      '  End If\r\n' +
-      '  WScript.Sleep 1000\r\n' +
-      'Next\r\n' +
-      'On Error Goto 0\r\n' +
+      'WScript.Sleep 5000\r\n' +
       'WshShell.Run Chr(34) & installer & Chr(34) & " /S /D=" & appDirPath, 0, True\r\n' +
       'On Error Resume Next\r\n' +
       'WshShell.Run Chr(34) & appExePath & Chr(34), 0, False\r\n' +
-      'On Error Goto 0\r\n' +
       'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
       'fso.DeleteFile installer\r\n' +
       'fso.DeleteFile WScript.ScriptFullName';
