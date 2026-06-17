@@ -138,19 +138,21 @@ async function doUpdate() {
     //   4. Deletes itself
     const scriptPath = path.join(app.getPath('userData'), 'update.vbs');
     const appExe = app.getPath('exe');
+    const appDir = path.dirname(appExe);
     const vbsScript = 
-      'Dim WshShell, pid, installer, appExePath\r\n' +
+      'Dim WshShell, pid, installer, appExePath, appDirPath\r\n' +
       'Set WshShell = CreateObject("WScript.Shell")\r\n' +
       'pid = ' + process.pid + '\r\n' +
       'installer = "' + exePath.replace(/\\/g, '\\\\') + '"\r\n' +
       'appExePath = "' + appExe.replace(/\\/g, '\\\\') + '"\r\n' +
+      'appDirPath = "' + appDir.replace(/\\/g, '\\\\') + '"\r\n' +
       'Set objWMIService = GetObject("winmgmts:\\\\.\\root\\cimv2")\r\n' +
       'Do\r\n' +
       '  Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " & pid)\r\n' +
       '  If colProcessList.Count = 0 Then Exit Do\r\n' +
       '  WScript.Sleep 1000\r\n' +
       'Loop\r\n' +
-      'WshShell.Run chr(34) & installer & chr(34) & " /S", 0, True\r\n' +
+      'WshShell.Run chr(34) & installer & chr(34) & " /S /D=" & chr(34) & appDirPath & chr(34), 0, True\r\n' +
       'WshShell.Run chr(34) & appExePath & chr(34), 0, False\r\n' +
       'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
       'fso.DeleteFile WScript.ScriptFullName';
