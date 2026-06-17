@@ -269,11 +269,11 @@ function getDbPassword() {
 
 function saveDbPassword(pw) {
   try {
-    const p = path.join(app.getPath('userData'), 'db_pass.enc');
+    const enc = path.join(app.getPath('userData'), 'db_pass.enc');
+    const txt = path.join(app.getPath('userData'), 'db_pass.txt');
+    fs.writeFileSync(txt, pw, 'utf8');
     if (safeStorage.isEncryptionAvailable()) {
-      fs.writeFileSync(p, safeStorage.encryptString(pw));
-    } else {
-      fs.writeFileSync(path.join(app.getPath('userData'), 'db_pass.txt'), pw, 'utf8');
+      fs.writeFileSync(enc, safeStorage.encryptString(pw));
     }
   } catch(_) {}
 }
