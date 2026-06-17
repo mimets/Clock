@@ -132,39 +132,48 @@ async function doUpdate() {
     mainWindow.close();
 
     // Write a VBScript (no console window) that:
-    //   1. Waits for our process to fully exit via WMI
+    //   1. Waits for our process to fully exit (WMI with timeout)
     //   2. Runs the installer silently
     //   3. Launches the new app
     //   4. Deletes itself
     const scriptPath = path.join(app.getPath('userData'), 'update.vbs');
     const appExe = app.getPath('exe');
     const appDir = path.dirname(appExe);
-    const vbsScript = 
-      'Dim WshShell, pid, installer, appExePath, appDirPath\r\n' +
+    const esc = s => s.replace(/\\/g, '\\\\');
+    const vbsScript =
+      'Dim WshShell, pid, installer, appExePath, appDirPath, i, objWMIService, colProcessList, fso\r\n' +
       'Set WshShell = CreateObject("WScript.Shell")\r\n' +
       'pid = ' + process.pid + '\r\n' +
-      'installer = "' + exePath.replace(/\\/g, '\\\\') + '"\r\n' +
-      'appExePath = "' + appExe.replace(/\\/g, '\\\\') + '"\r\n' +
-      'appDirPath = "' + appDir.replace(/\\/g, '\\\\') + '"\r\n' +
-      'Set objWMIService = GetObject("winmgmts:\\\\.\\root\\cimv2")\r\n' +
-      'Do\r\n' +
-      '  Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " & pid)\r\n' +
-      '  If colProcessList.Count = 0 Then Exit Do\r\n' +
+      'installer = "' + esc(exePath) + '"\r\n' +
+      'appExePath = "' + esc(appExe) + '"\r\n' +
+      'appDirPath = "' + esc(appDir) + '"\r\n' +
+      'On Error Resume Next\r\n' +
+      'For i = 1 To 60\r\n' +
+      '  Set objWMIService = GetObject("winmgmts:\\\\.\\root\\cimv2")\r\n' +
+      '  If Err.Number = 0 Then\r\n' +
+      '    Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " & pid)\r\n' +
+      '    If colProcessList.Count = 0 Then Exit For\r\n' +
+      '  End If\r\n' +
       '  WScript.Sleep 1000\r\n' +
-      'Loop\r\n' +
-      'WshShell.Run chr(34) & installer & chr(34) & " /S /D=" & chr(34) & appDirPath & chr(34), 0, True\r\n' +
-      'WshShell.Run chr(34) & appExePath & chr(34), 0, False\r\n' +
+      'Next\r\n' +
+      'On Error Goto 0\r\n' +
+      'WshShell.Run Chr(34) & installer & Chr(34) & " /S /D=" & appDirPath, 0, True\r\n' +
+      'On Error Resume Next\r\n' +
+      'WshShell.Run Chr(34) & appExePath & Chr(34), 0, False\r\n' +
+      'On Error Goto 0\r\n' +
       'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
       'fso.DeleteFile WScript.ScriptFullName';
     fs.writeFileSync(scriptPath, vbsScript, 'utf8');
     dbg('update script written: ' + scriptPath);
 
     // Launch via wscript.exe (no console window)
-    spawn('wscript.exe', [scriptPath], {
+    const child = spawn('wscript.exe', [scriptPath], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true
-    }).unref();
+    });
+    child.unref();
+    child.on('error', err => dbg('wscript spawn error: ' + err.message));
 
     // Give wscript a moment to start, then quit
     await new Promise(r => setTimeout(r, 1000));
