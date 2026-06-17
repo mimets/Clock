@@ -3,7 +3,9 @@ const FILES = ['index.html','manifest.json','icon-192.svg','icon-512.svg'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
+  e.waitUntil(
+    caches.open(CACHE).then(c => Promise.allSettled(FILES.map(f => c.add(f).catch(() => {}))))
+  );
 });
 
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
