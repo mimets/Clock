@@ -46,8 +46,7 @@
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": false,
-      "closeApp": true,
-      "closeAppRunning": true,
+      "include": "nsis-override.nsh",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },
