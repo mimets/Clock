@@ -1,6 +1,6 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.36",
+  "version": "1.0.37",
   "description": "Stage Tracker - traccia il tuo stage",
   "main": "main.js",
   "scripts": {
@@ -46,6 +46,8 @@
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": false,
+      "closeApp": true,
+      "closeAppRunning": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },
