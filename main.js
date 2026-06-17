@@ -58,13 +58,15 @@ function httpsGet(url) {
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
+    try { fs.unlinkSync(dest); } catch(_) {}
     const doGet = (u) => {
       https.get(u, { headers: { 'User-Agent': 'StageTracker' }, timeout: 60000 }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           doGet(res.headers.location);
           return;
         }
-        const file = fs.createWriteStream(dest);
+        let file;
+        try { file = fs.createWriteStream(dest); } catch(err) { reject(err); return; }
         const total = parseInt(res.headers['content-length'], 10);
         let downloaded = 0, lastEmit = 0;
         res.pipe(file);
@@ -162,6 +164,7 @@ async function doUpdate() {
       'WshShell.Run Chr(34) & appExePath & Chr(34), 0, False\r\n' +
       'On Error Goto 0\r\n' +
       'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
+      'fso.DeleteFile installer\r\n' +
       'fso.DeleteFile WScript.ScriptFullName';
     fs.writeFileSync(scriptPath, vbsScript, 'utf8');
     dbg('update script written: ' + scriptPath);
