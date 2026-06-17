@@ -179,30 +179,28 @@ async function doUpdate() {
 async function checkForUpdates() {
   send('update-checking', {});
   try {
-    // Use raw GitHub file (no rate limit) instead of API
     const currentVer = getCurrentVer();
-    const url = 'https://raw.githubusercontent.com/mimets/Clock/master/version.txt';
-    const { status, body } = await httpsGet(url);
-
+    dbg('current=' + currentVer);
+    // Use GitHub API (no CDN cache) to get latest release tag
+    const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/latest');
     if (status !== 200) {
-      dbg('check failed: HTTP ' + status);
-      send('update-error', { message: 'HTTP ' + status });
+      dbg('API check failed: HTTP ' + status);
+      // Fallback: try raw file URL
+      const { status: s2, body: b2 } = await httpsGet('https://raw.githubusercontent.com/mimets/Clock/master/version.txt');
+      if (s2 !== 200) { send('update-error', { message: 'HTTP ' + s2 }); return; }
+      const lv = b2.trim();
+      if (!/^\d+\.\d+\.\d+$/.test(lv)) { send('update-error', { message: 'Versione remota non valida' }); return; }
+      if (verGt(lv, currentVer)) { updateVersion = lv; dbg('update available: ' + lv); doUpdate(); }
+      else { dbg('up to date'); send('update-none', { version: currentVer }); }
       return;
     }
-
-    const latestVer = body.trim();
-    dbg('current=' + currentVer + ' latest=' + latestVer);
-
-    // Validate semver to prevent VBScript injection
-    if (!/^\d+\.\d+\.\d+$/.test(latestVer)) {
-      dbg('invalid version format: ' + latestVer);
-      send('update-error', { message: 'Versione remota non valida' });
-      return;
-    }
-
-    if (verGt(latestVer, currentVer)) {
-      updateVersion = latestVer;
-      dbg('update available: ' + latestVer);
+    const release = JSON.parse(body);
+    const tag = (release.tag_name || '').replace(/^v/, '');
+    dbg('latest=' + tag);
+    if (!/^\d+\.\d+\.\d+$/.test(tag)) { send('update-error', { message: 'Tag versione non valido: ' + tag }); return; }
+    if (verGt(tag, currentVer)) {
+      updateVersion = tag;
+      dbg('update available: ' + tag);
       doUpdate();
     } else {
       dbg('up to date');
