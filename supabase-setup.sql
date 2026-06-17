@@ -65,6 +65,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 -- 3. Permessi per utenti anonimi (app)
 CREATE POLICY "anon_insert_users" ON users FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_select_users" ON users FOR SELECT TO anon USING (true);
+CREATE POLICY "anon_update_users" ON users FOR UPDATE TO anon USING (true);
 
 CREATE POLICY "anon_insert_configs" ON configs FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "anon_select_configs" ON configs FOR SELECT TO anon USING (true);
