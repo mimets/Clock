@@ -41,11 +41,11 @@
       "artifactName": "StageTracker-${version}.${ext}"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": false,
+      "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true,
+      "runAfterFinish": false,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },
