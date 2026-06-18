@@ -15,5 +15,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFileDB: () => ipcRenderer.invoke('read-filedb'),
   writeFileDB: (data) => ipcRenderer.invoke('write-filedb', data),
   checkDbTables: () => ipcRenderer.invoke('check-db-tables'),
-  migrateDb: (pw) => ipcRenderer.invoke('migrate-db', pw)
+  migrateDb: (pw) => ipcRenderer.invoke('migrate-db', pw),
+  deleteMessage: (messageId, username) => ipcRenderer.invoke('delete-message', messageId, username),
+  deleteUser: (targetUsername) => ipcRenderer.invoke('delete-user', targetUsername),
+  addReaction: (messageId, username, reaction) => ipcRenderer.invoke('add-reaction', messageId, username, reaction),
+  setTyping: (channelId, username) => ipcRenderer.invoke('set-typing', channelId, username),
+  getTypingUsers: (channelId) => ipcRenderer.invoke('get-typing-users', channelId)
 });
