@@ -210,19 +210,19 @@ async function checkForUpdates() {
   try {
     const currentVer = getCurrentVer();
     dbg('current=' + currentVer);
-    // Use GitHub API (no CDN cache) to get latest release tag
-    const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/latest');
-    if (status !== 200) {
-      dbg('API check failed: HTTP ' + status);
-      // Fallback: try raw file URL
-      const { status: s2, body: b2 } = await httpsGet('https://raw.githubusercontent.com/mimets/Clock/master/version.txt');
-      if (s2 !== 200) { send('update-error', { message: 'HTTP ' + s2 }); return; }
-      const lv = b2.trim();
-      if (!/^\d+\.\d+\.\d+$/.test(lv)) { send('update-error', { message: 'Versione remota non valida' }); return; }
-      if (verGt(lv, currentVer)) { updateVersion = lv; dbg('update available: ' + lv); doUpdate(); }
-      else { dbg('up to date'); send('update-none', { version: currentVer }); }
-      return;
+    // Primary: raw version.txt (no rate limit)
+    const { status: s1, body: b1 } = await httpsGet('https://raw.githubusercontent.com/mimets/Clock/master/version.txt');
+    if (s1 === 200) {
+      const lv = b1.trim();
+      if (/^\d+\.\d+\.\d+$/.test(lv)) {
+        dbg('version.txt says ' + lv);
+        if (verGt(lv, currentVer)) { updateVersion = lv; dbg('update available: ' + lv); doUpdate(); return; }
+        else { dbg('up to date'); send('update-none', { version: currentVer }); return; }
+      }
     }
+    // Fallback: GitHub API
+    const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/latest');
+    if (status !== 200) { send('update-error', { message: 'HTTP ' + status }); return; }
     const release = JSON.parse(body);
     const tag = (release.tag_name || '').replace(/^v/, '');
     dbg('latest=' + tag);
