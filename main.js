@@ -303,11 +303,11 @@ function getDbPassword() {
       const buf = fs.readFileSync(p);
       return safeStorage.decryptString(buf);
     }
-    // Fallback per vecchia versione in plaintext
     const old = path.join(app.getPath('userData'), 'db_pass.txt');
     if (fs.existsSync(old)) return fs.readFileSync(old, 'utf8').trim();
   } catch(_) {}
-  return null;
+  // Hardcoded fallback — setup automatico, nessun prompt richiesto
+  return 'Fede2009@123';
 }
 
 function saveDbPassword(pw) {
@@ -339,6 +339,8 @@ ipcMain.handle('check-db-tables', async () => {
     // Always run the latest migration (idempotent — IF NOT EXISTS / DROP POLICY IF EXISTS / CREATE POLICY)
     await c.query(MIGRATE_SQL);
     await c.end();
+    // Save password for future runs (so hardcoded fallback is only needed on first install)
+    saveDbPassword(pw);
     return { needsPassword: false, tablesExist: true };
   } catch(e) {
     return { needsPassword: !getDbPassword(), tablesExist: false, error: e.message };
