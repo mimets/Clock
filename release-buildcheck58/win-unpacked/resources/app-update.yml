@@ -1,0 +1,5 @@
+owner: mimets
+repo: Clock
+provider: github
+private: false
+updaterCacheDirName: stage-tracker-updater
