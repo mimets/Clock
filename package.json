@@ -1,6 +1,6 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.57",
+  "version": "1.0.58",
   "description": "Stage Tracker - traccia il tuo stage",
   "author": "Federico <mimets@github>",
   "main": "main.js",
@@ -46,7 +46,7 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false,
-      "runAfterFinish": false,
+      "runAfterFinish": true,
       "include": "nsis-override.nsh",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
