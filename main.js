@@ -209,31 +209,27 @@ async function checkForUpdates() {
   try {
     const currentVer = getCurrentVer();
     dbg('current=' + currentVer);
-    // Primary: raw version.txt (no rate limit)
-    const { status: s1, body: b1 } = await httpsGet('https://raw.githubusercontent.com/mimets/Clock/master/version.txt');
-    if (s1 === 200) {
-      const lv = b1.trim();
-      if (/^\d+\.\d+\.\d+$/.test(lv)) {
-        dbg('version.txt says ' + lv);
-        if (verGt(lv, currentVer)) { updateVersion = lv; dbg('update available: ' + lv); doUpdate(); return; }
-        else { dbg('up to date'); send('update-none', { version: currentVer }); return; }
+    let latestVer = null;
+    // Primary: GitHub API (always accurate)
+    try {
+      const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/latest');
+      if (status === 200) {
+        const release = JSON.parse(body);
+        const tag = (release.tag_name || '').replace(/^v/, '');
+        if (/^\d+\.\d+\.\d+$/.test(tag)) latestVer = tag;
       }
+    } catch (_) {}
+    // Fallback: raw version.txt (no rate limit, may be stale from CDN)
+    if (!latestVer) {
+      try {
+        const { status: s, body: b } = await httpsGet('https://raw.githubusercontent.com/mimets/Clock/master/version.txt');
+        if (s === 200) { const lv = b.trim(); if (/^\d+\.\d+\.\d+$/.test(lv)) latestVer = lv; }
+      } catch (_) {}
     }
-    // Fallback: GitHub API
-    const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/latest');
-    if (status !== 200) { send('update-error', { message: 'HTTP ' + status }); return; }
-    const release = JSON.parse(body);
-    const tag = (release.tag_name || '').replace(/^v/, '');
-    dbg('latest=' + tag);
-    if (!/^\d+\.\d+\.\d+$/.test(tag)) { send('update-error', { message: 'Tag versione non valido: ' + tag }); return; }
-    if (verGt(tag, currentVer)) {
-      updateVersion = tag;
-      dbg('update available: ' + tag);
-      doUpdate();
-    } else {
-      dbg('up to date');
-      send('update-none', { version: currentVer });
-    }
+    if (!latestVer) { send('update-error', { message: 'Impossibile determinare ultima versione' }); return; }
+    dbg('latest=' + latestVer);
+    if (verGt(latestVer, currentVer)) { updateVersion = latestVer; dbg('update available: ' + latestVer); doUpdate(); }
+    else { dbg('up to date'); send('update-none', { version: currentVer }); }
   } catch (err) {
     dbg('check error: ' + err.message);
     send('update-error', { message: err.message });
