@@ -156,32 +156,31 @@ async function doUpdate() {
     const appDir = path.dirname(appExe);
     const logPath = path.join(app.getPath('userData'), 'update.log');
     const vbstr = s => '"' + s + '"';
-    const q = s => 'Chr(34)&' + vbstr(s) + '&Chr(34)';
     const vbsScript = [
       'Set WshShell = CreateObject("WScript.Shell")',
       'Set fso = CreateObject("Scripting.FileSystemObject")',
-      'installer = ' + q(exePath),
-      'appExe = ' + q(appExe),
+      'installer = ' + vbstr(exePath),
+      'appExe = ' + vbstr(appExe),
       'WScript.Sleep 6000',
-      'fso.OpenTextFile(' + q(logPath) + ', 2, True).WriteLine Now & " VBS: running installer"',
+      'fso.OpenTextFile(' + vbstr(logPath) + ', 2, True).WriteLine Now & " VBS: running installer"',
       'WshShell.Run installer & " /S /D=" & ' + vbstr(appDir) + ', 0, True',
-      'fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: installer done, launching app"',
+      'fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: installer done, launching app"',
       'WScript.Sleep 3000',
       'For i = 1 To 10',
       '  On Error Resume Next',
       '  WshShell.Run appExe, 0, False',
       '  If Err.Number = 0 Then',
-      '    fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: app launched (attempt " & i & ")"',
+      '    fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: app launched (attempt " & i & ")"',
       '    i = 99',
       '  Else',
-      '    fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: attempt " & i & ": " & Err.Description',
+      '    fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: attempt " & i & ": " & Err.Description',
       '    Err.Clear: WScript.Sleep 3000',
       '  End If',
       'Next',
       'On Error Resume Next',
       'fso.DeleteFile installer',
       'fso.DeleteFile WScript.ScriptFullName',
-      'fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: done"'
+      'fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: done"'
     ].join('\r\n');
     fs.writeFileSync(scriptPath, vbsScript, 'utf8');
     dbg('update script written: ' + scriptPath + '\n' + vbsScript);
