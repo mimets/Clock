@@ -182,7 +182,7 @@ async function doUpdate() {
       'WScript.Sleep 3000',
       'For i = 1 To 10',
       '  On Error Resume Next',
-      '  WshShell.Run appExe, 0, False',
+      '  WshShell.Run appExe, 1, False',
       '  If Err.Number = 0 Then',
       '    fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: app launched (attempt " & i & ")"',
       '    i = 99',
