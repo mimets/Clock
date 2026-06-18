@@ -66,6 +66,22 @@ function downloadFile(url, dest) {
           doGet(res.headers.location, (depth||0) + 1);
           return;
         }
+        if (res.statusCode !== 200) {
+          res.destroy();
+          fs.unlink(tmp, () => {});
+          reject(new Error('HTTP ' + res.statusCode + ' for ' + url));
+          return;
+        }
+        const ct = (res.headers['content-type'] || '').toLowerCase();
+        if (ct.includes('text/html')) {
+          res.destroy();
+          fs.unlink(tmp, () => {});
+          reject(new Error('Downloaded HTML page instead of executable. The release asset may not exist or the URL is wrong.'));
+          return;
+        }
+        if (!ct.includes('application/octet-stream') && !ct.includes('application/x-msdownload') && !ct.includes('application/x-msi') && !ct.includes('application/zip')) {
+          dbg('WARNING: unexpected content-type: ' + ct + ' for ' + url);
+        }
         let file;
         try { file = fs.createWriteStream(tmp); } catch(err) { reject(err); return; }
         const total = parseInt(res.headers['content-length'], 10);
@@ -111,10 +127,19 @@ async function getInstallerUrl(version) {
     if (status === 200) {
       const release = JSON.parse(body);
       const assets = Array.isArray(release.assets) ? release.assets : [];
-      const preferred = assets.find(a => a && typeof a.name === 'string' && /\.exe$/i.test(a.name)) || assets.find(a => a && typeof a.name === 'string' && /stage.?tracker/i.test(a.name));
-      if (preferred && preferred.browser_download_url) return preferred.browser_download_url;
+      dbg('release assets: ' + assets.map(a => a.name + '(' + a.size + ' bytes)').join(', '));
+      // Prefer .exe files that are NOT .blockmap
+      const exeAsset = assets.find(a => a && typeof a.name === 'string' && /\.exe$/i.test(a.name) && !/\.blockmap$/i.test(a.name));
+      if (exeAsset && exeAsset.browser_download_url) {
+        dbg('selected exe asset: ' + exeAsset.name + ' -> ' + exeAsset.browser_download_url);
+        return exeAsset.browser_download_url;
+      }
+      dbg('no suitable exe asset found in release');
     }
-  } catch (_) {}
+  } catch (e) {
+    dbg('getInstallerUrl error: ' + e.message);
+  }
+  dbg('using fallback URL: ' + fallback);
   return fallback;
 }
 
