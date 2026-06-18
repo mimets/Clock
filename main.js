@@ -104,6 +104,20 @@ function getCurrentVer() {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version || '0.0.0'; } catch(_) { return '0.0.0'; }
 }
 
+async function getInstallerUrl(version) {
+  const fallback = 'https://github.com/mimets/Clock/releases/download/v' + version + '/StageTracker-' + version + '.exe';
+  try {
+    const { status, body } = await httpsGet('https://api.github.com/repos/mimets/Clock/releases/tags/v' + version);
+    if (status === 200) {
+      const release = JSON.parse(body);
+      const assets = Array.isArray(release.assets) ? release.assets : [];
+      const preferred = assets.find(a => a && typeof a.name === 'string' && /\.exe$/i.test(a.name)) || assets.find(a => a && typeof a.name === 'string' && /stage.?tracker/i.test(a.name));
+      if (preferred && preferred.browser_download_url) return preferred.browser_download_url;
+    }
+  } catch (_) {}
+  return fallback;
+}
+
 function verGt(a, b) {
   const aa = a.split('.').map(Number), bb = b.split('.').map(Number);
   for (let i = 0; i < 3; i++) {
@@ -120,7 +134,7 @@ async function doUpdate() {
     send('update-available', { version: updateVersion });
     send('update-progress', { percent: 0 });
 
-    const exeUrl = 'https://github.com/mimets/Clock/releases/download/v' + updateVersion + '/StageTracker-' + updateVersion + '.exe';
+    const exeUrl = await getInstallerUrl(updateVersion);
     const exePath = path.join(app.getPath('userData'), 'StageTracker-' + updateVersion + '-setup.exe');
 
     dbg('downloading installer: ' + exeUrl);
@@ -144,7 +158,7 @@ async function doUpdate() {
     app.isQuitting = true;
 
     // Close all windows first so the installer can overwrite files
-    mainWindow.close();
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
 
     // Write a VBScript (no console window, no WMI) that:
     //   1. Waits 6s for our process to fully exit
@@ -367,6 +381,7 @@ ipcMain.handle('migrate-db', async (_e, pw) => {
 });
 
 app.on('ready', () => {
+  ipcMain.handle('get-app-version', () => app.getVersion());
   ipcMain.handle('set-auto-start', async () => {
     try { app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') }); return true; } catch(e) { return false; }
   });
