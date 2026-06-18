@@ -1,7 +1,8 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.43",
+  "version": "1.0.47",
   "description": "Stage Tracker - traccia il tuo stage",
+  "author": "Federico <mimets@github>",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

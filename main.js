@@ -58,15 +58,16 @@ function httpsGet(url) {
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
-    try { fs.unlinkSync(dest); } catch(_) {}
-    const doGet = (u) => {
+    const tmp = dest + '.tmp.' + Date.now();
+    const doGet = (u, depth) => {
+      if (depth > 10) { reject(new Error('Too many redirects')); return; }
       https.get(u, { headers: { 'User-Agent': 'StageTracker' }, timeout: 60000 }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          doGet(res.headers.location);
+          doGet(res.headers.location, (depth||0) + 1);
           return;
         }
         let file;
-        try { file = fs.createWriteStream(dest); } catch(err) { reject(err); return; }
+        try { file = fs.createWriteStream(tmp); } catch(err) { reject(err); return; }
         const total = parseInt(res.headers['content-length'], 10);
         let downloaded = 0, lastEmit = 0;
         res.pipe(file);
@@ -80,8 +81,20 @@ function downloadFile(url, dest) {
             }
           }
         });
-        file.on('finish', () => { file.close(); resolve(); });
-      }).on('error', (err) => { fs.unlink(dest, () => {}); reject(err); });
+        file.on('finish', () => {
+          file.close();
+          // Rename temp file to destination (retry on EBUSY up to 10x)
+          let retries = 0;
+          const rename = () => {
+            try { fs.renameSync(tmp, dest); resolve(); }
+            catch(e) {
+              if (e.code === 'EBUSY' && retries++ < 10) setTimeout(rename, 1000);
+              else reject(e);
+            }
+          };
+          rename();
+        });
+      }).on('error', (err) => { fs.unlink(tmp, () => {}); reject(err); });
     };
     doGet(url);
   });
@@ -133,30 +146,45 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     mainWindow.close();
 
-    // Write a VBScript (no console window) that:
-    //   1. Waits for our process to fully exit (WMI with timeout)
-    //   2. Runs the installer silently
-    //   3. Launches the new app
-    //   4. Deletes itself
+    // Write a VBScript (no console window, no WMI) that:
+    //   1. Waits 6s for our process to fully exit
+    //   2. Runs the installer silently (waits for it)
+    //   3. Launches the new app (retries up to 10x)
+    //   4. Deletes itself and the installer
     const scriptPath = path.join(app.getPath('userData'), 'update.vbs');
     const appExe = app.getPath('exe');
     const appDir = path.dirname(appExe);
-    const esc = s => s.replace(/\\/g, '\\\\');
-    const vbsScript =
-      'Dim WshShell, installer, appExePath, appDirPath, fso\r\n' +
-      'Set WshShell = CreateObject("WScript.Shell")\r\n' +
-      'installer = "' + esc(exePath) + '"\r\n' +
-      'appExePath = "' + esc(appExe) + '"\r\n' +
-      'appDirPath = "' + esc(appDir) + '"\r\n' +
-      'WScript.Sleep 5000\r\n' +
-      'WshShell.Run Chr(34) & installer & Chr(34) & " /S /D=" & appDirPath, 0, True\r\n' +
-      'On Error Resume Next\r\n' +
-      'WshShell.Run Chr(34) & appExePath & Chr(34), 0, False\r\n' +
-      'Set fso = CreateObject("Scripting.FileSystemObject")\r\n' +
-      'fso.DeleteFile installer\r\n' +
-      'fso.DeleteFile WScript.ScriptFullName';
+    const logPath = path.join(app.getPath('userData'), 'update.log');
+    const vbstr = s => '"' + s + '"';
+    const q = s => 'Chr(34)&' + vbstr(s) + '&Chr(34)';
+    const vbsScript = [
+      'Set WshShell = CreateObject("WScript.Shell")',
+      'Set fso = CreateObject("Scripting.FileSystemObject")',
+      'installer = ' + q(exePath),
+      'appExe = ' + q(appExe),
+      'WScript.Sleep 6000',
+      'fso.OpenTextFile(' + q(logPath) + ', 2, True).WriteLine Now & " VBS: running installer"',
+      'WshShell.Run installer & " /S /D=" & ' + vbstr(appDir) + ', 0, True',
+      'fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: installer done, launching app"',
+      'WScript.Sleep 3000',
+      'For i = 1 To 10',
+      '  On Error Resume Next',
+      '  WshShell.Run appExe, 0, False',
+      '  If Err.Number = 0 Then',
+      '    fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: app launched (attempt " & i & ")"',
+      '    i = 99',
+      '  Else',
+      '    fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: attempt " & i & ": " & Err.Description',
+      '    Err.Clear: WScript.Sleep 3000',
+      '  End If',
+      'Next',
+      'On Error Resume Next',
+      'fso.DeleteFile installer',
+      'fso.DeleteFile WScript.ScriptFullName',
+      'fso.OpenTextFile(' + q(logPath) + ', 8, True).WriteLine Now & " VBS: done"'
+    ].join('\r\n');
     fs.writeFileSync(scriptPath, vbsScript, 'utf8');
-    dbg('update script written: ' + scriptPath);
+    dbg('update script written: ' + scriptPath + '\n' + vbsScript);
 
     // Launch via wscript.exe (no console window)
     const child = spawn('wscript.exe', [scriptPath], {
@@ -309,9 +337,10 @@ ipcMain.handle('check-db-tables', async () => {
       connectionTimeoutMillis: 10000
     });
     await c.connect();
-    const r = await c.query("SELECT to_regclass('public.users') IS NOT NULL as exists");
+    // Always run the latest migration (idempotent — IF NOT EXISTS / DROP POLICY IF EXISTS / CREATE POLICY)
+    await c.query(MIGRATE_SQL);
     await c.end();
-    return { needsPassword: false, tablesExist: r.rows[0].exists };
+    return { needsPassword: false, tablesExist: true };
   } catch(e) {
     return { needsPassword: !getDbPassword(), tablesExist: false, error: e.message };
   }
