@@ -56,7 +56,7 @@
       "owner": "mimets",
       "repo": "Clock",
       "private": false,
-      "draft": false
+      "releaseType": "release"
     }
   },
   "devDependencies": {
