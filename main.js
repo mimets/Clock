@@ -185,57 +185,55 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
 
-    // Use PowerShell to run the installer (handles paths with spaces better)
-    const psPath = path.join(app.getPath('userData'), 'update.ps1');
+    // Use a CMD batch file instead of PowerShell (avoids execution policy issues)
+    const cmdPath = path.join(app.getPath('userData'), 'update.cmd');
     const appExe = app.getPath('exe');
     const appDir = path.dirname(appExe);
-    const psScript = [
-      'Start-Sleep -Seconds 6',
-      'if (-not (Test-Path ' + exePath.replace(/'/g, "''") + ')) {',
-      '  Write-Output "PS: installer not found"; exit 1',
-      '}',
-      'Write-Output "PS: running installer"',
-      '$p = Start-Process -FilePath ' + exePath.replace(/'/g, "''") + ' -ArgumentList "/S","/D=' + appDir.replace(/"/g, '""') + '" -Wait -PassThru',
-      'Write-Output "PS: installer exit code: $($p.ExitCode)"',
-      'if ($p.ExitCode -ne 0) {',
-      '  Write-Output "PS: silent install failed, trying interactive"',
-      '  $p2 = Start-Process -FilePath ' + exePath.replace(/'/g, "''") + ' -ArgumentList "/D=' + appDir.replace(/"/g, '""') + '" -Wait -PassThru',
-      '  Write-Output "PS: interactive exit code: $($p2.ExitCode)"',
-      '}',
-      'Start-Sleep -Seconds 3',
-      'for ($i = 1; $i -le 10; $i++) {',
-      '  try {',
-      '    Start-Process ' + appExe.replace(/'/g, "''") + ' -WindowStyle Normal',
-      '    Write-Output "PS: app launched (attempt $i)"',
-      '    break',
-      '  } catch {',
-      '    Write-Output "PS: attempt $i failed: $_"',
-      '    Start-Sleep -Seconds 3',
-      '  }',
-      '}',
-      'Remove-Item ' + exePath.replace(/'/g, "''") + ' -ErrorAction SilentlyContinue',
-      'Remove-Item $PSCommandPath -ErrorAction SilentlyContinue',
-      'Write-Output "PS: done"'
+    const cmdScript = [
+      '@echo off',
+      '> "%APPDATA%\\stage-tracker\\update-debug.log" (',
+      '  echo [%DATE% %TIME%] update.cmd started',
+      '  timeout /t 6 /nobreak >nul',
+      '  if not exist "' + exePath.replace(/"/g, '""') + '" (',
+      '    echo installer not found at ' + exePath.replace(/"/g, '""') + '',
+      '    exit /b 1',
+      '  )',
+      '  echo running silent installer...',
+      '  "' + exePath.replace(/"/g, '""') + '" /S /D="' + appDir.replace(/"/g, '""') + '"',
+      '  set "EC=%ERRORLEVEL%"',
+      '  echo silent installer exit code: %EC%',
+      '  if "%EC%" neq "0" (',
+      '    echo silent failed, trying interactive...',
+      '    "' + exePath.replace(/"/g, '""') + '" /D="' + appDir.replace(/"/g, '""') + '"',
+      '    set "EC2=%ERRORLEVEL%"',
+      '    echo interactive installer exit code: %EC2%',
+      '  )',
+      '  timeout /t 3 /nobreak >nul',
+      '  echo launching app...',
+      '  start "" "' + appExe.replace(/"/g, '""') + '"',
+      '  if errorlevel 1 echo app launch failed',
+      '  del "' + exePath.replace(/"/g, '""') + '" /q >nul 2>&1',
+      '  echo update.cmd finished',
+      ')',
+      'del "%~f0" /q >nul 2>&1'
     ].join('\r\n');
-    fs.writeFileSync(psPath, psScript, 'utf8');
-    dbg('update script written: ' + psPath);
+    fs.writeFileSync(cmdPath, cmdScript, 'utf8');
+    dbg('update script written: ' + cmdPath);
 
-    // Launch PowerShell with hidden window, bypass execution policy
-    const child = spawn('powershell.exe', [
-      '-ExecutionPolicy', 'Bypass',
-      '-WindowStyle', 'Hidden',
-      '-File', psPath
+    // Launch cmd.exe with hidden window
+    const child = spawn('cmd.exe', [
+      '/c', cmdPath
     ], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true
     });
     child.unref();
-    child.on('error', err => dbg('powershell spawn error: ' + err.message));
+    child.on('error', err => dbg('cmd spawn error: ' + err.message));
 
-    // Give wscript a moment to start, then quit
+    // Give cmd a moment to start, then quit
     await new Promise(r => setTimeout(r, 1000));
-    app.quit();
+    app.exit(0);
   } catch (err) {
     dbg('update error: ' + err.message);
     isDownloading = false;
