@@ -1,6 +1,6 @@
 {
   "name": "stage-tracker",
-  "version": "1.0.72",
+  "version": "1.0.73",
   "description": "Stage Tracker - traccia il tuo stage",
   "author": "Federico <mimets@github>",
   "main": "main.js",
