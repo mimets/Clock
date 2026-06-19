@@ -683,7 +683,7 @@ async function sbUpdate(t,data,filters){try{const q=new URLSearchParams(filters)
 async function sbDelete(t,filters){try{const q=new URLSearchParams(filters);const r=await fetch(SUPABASE_URL+"/rest/v1/"+t+"?"+q,{method:"DELETE",headers:SB_H()});return r.ok?null:{error:true}}catch{return{error:true}}}
 let currentUser=null,config={},startDate=null,endDate=null,animPct=0,prevTargetPct=0,hasTriggered100=false;
 let notifTrack={date:""},notifTimer=null,milestoneSent=new Set();
-let chatMessages=[],chatMessageCache={},chatChannel=null,chatBadgeCount=0,currentChatChannel="public",currentDmUser=null,lastChatChannel="public",appVersion="1.0.62";
+let chatMessages=[],chatMessageCache={},chatChannel=null,chatBadgeCount=0,currentChatChannel="public",currentDmUser=null,lastChatChannel="public",appVersion="1.0.63";
 let follows=[],customCountdowns=[],pctAnimeId=null,confettiRunning=false;
 let notifChannel=null,unreadNotifCount=0,notificationsData=[];
 let chatRefreshTimer=null,leaderboardRefreshTimer=null,notificationsRefreshTimer=null,sessionRefreshTimer=null,backgroundNotifTimer=null;
