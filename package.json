@@ -55,7 +55,8 @@
       "provider": "github",
       "owner": "mimets",
       "repo": "Clock",
-      "private": false
+      "private": false,
+      "draft": false
     }
   },
   "devDependencies": {
