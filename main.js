@@ -332,6 +332,61 @@ ipcMain.handle('delete-user', async (_e, targetUsername) => {
   }
 });
 
+ipcMain.handle('wipe-database', async () => {
+  try {
+    const crypto = require('crypto');
+    const { Client } = require('pg');
+    const c = new Client({
+      host: 'aws-0-eu-west-1.pooler.supabase.com', port: 5432,
+      database: 'postgres',
+      user: 'postgres.akodhogcuowpgndetaca',
+      password: getDbPassword(),
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000
+    });
+    await c.connect();
+    await c.query('DELETE FROM messages');
+    await c.query('DELETE FROM notifications');
+    await c.query('DELETE FROM follows');
+    await c.query('DELETE FROM message_likes');
+    await c.query('DELETE FROM message_reactions');
+    await c.query('DELETE FROM typing_events');
+    await c.query('DELETE FROM leaderboard');
+    await c.query('DELETE FROM configs');
+    await c.query('DELETE FROM users');
+    // Re-create admin user (SHA-256 of "admin:admin")
+    const adminHash = crypto.createHash('sha256').update('admin:admin').digest('hex');
+    await c.query('INSERT INTO users (username, password_hash) VALUES ($1, $2)', ['admin', adminHash]);
+    await c.query('INSERT INTO configs (username, config) VALUES ($1, $2)', ['admin', '{}']);
+    await c.end();
+    return { success: true };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('reset-user', async (_e, targetUsername) => {
+  try {
+    const { Client } = require('pg');
+    const c = new Client({
+      host: 'aws-0-eu-west-1.pooler.supabase.com', port: 5432,
+      database: 'postgres',
+      user: 'postgres.akodhogcuowpgndetaca',
+      password: getDbPassword(),
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000
+    });
+    await c.connect();
+    await c.query('DELETE FROM configs WHERE username = $1', [targetUsername]);
+    await c.query('INSERT INTO configs (username, config) VALUES ($1, $2)', [targetUsername, '{}']);
+    await c.query('DELETE FROM leaderboard WHERE username = $1', [targetUsername]);
+    await c.end();
+    return { success: true };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+});
+
 ipcMain.handle('add-reaction', async (_e, messageId, username, reaction) => {
   try {
     const { Client } = require('pg');
