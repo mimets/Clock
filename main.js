@@ -185,53 +185,53 @@ async function doUpdate() {
     // Close all windows first so the installer can overwrite files
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
 
-    // Write a VBScript (no console window, no WMI) that:
-    //   1. Waits 6s for our process to fully exit
-    //   2. Runs the installer silently (waits for it)
-    //   3. Launches the new app (retries up to 10x)
-    //   4. Deletes itself and the installer
-    const scriptPath = path.join(app.getPath('userData'), 'update.vbs');
+    // Use PowerShell to run the installer (handles paths with spaces better)
+    const psPath = path.join(app.getPath('userData'), 'update.ps1');
     const appExe = app.getPath('exe');
     const appDir = path.dirname(appExe);
-    const logPath = path.join(app.getPath('userData'), 'update.log');
-    const vbstr = s => '"' + s + '"';
-    const vbsScript = [
-      'Set WshShell = CreateObject("WScript.Shell")',
-      'Set fso = CreateObject("Scripting.FileSystemObject")',
-      'installer = ' + vbstr(exePath),
-      'appExe = ' + vbstr(appExe),
-      'WScript.Sleep 6000',
-      'fso.OpenTextFile(' + vbstr(logPath) + ', 2, True).WriteLine Now & " VBS: running installer"',
-      'WshShell.Run installer & " /S /D=" & ' + vbstr(appDir) + ', 0, True',
-      'fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: installer done, launching app"',
-      'WScript.Sleep 3000',
-      'For i = 1 To 10',
-      '  On Error Resume Next',
-      '  WshShell.Run appExe, 1, False',
-      '  If Err.Number = 0 Then',
-      '    fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: app launched (attempt " & i & ")"',
-      '    i = 99',
-      '  Else',
-      '    fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: attempt " & i & ": " & Err.Description',
-      '    Err.Clear: WScript.Sleep 3000',
-      '  End If',
-      'Next',
-      'On Error Resume Next',
-      'fso.DeleteFile installer',
-      'fso.DeleteFile WScript.ScriptFullName',
-      'fso.OpenTextFile(' + vbstr(logPath) + ', 8, True).WriteLine Now & " VBS: done"'
+    const psScript = [
+      'Start-Sleep -Seconds 6',
+      'if (-not (Test-Path ' + exePath.replace(/'/g, "''") + ')) {',
+      '  Write-Output "PS: installer not found"; exit 1',
+      '}',
+      'Write-Output "PS: running installer"',
+      '$p = Start-Process -FilePath ' + exePath.replace(/'/g, "''") + ' -ArgumentList "/S","/D=' + appDir.replace(/"/g, '""') + '" -Wait -PassThru',
+      'Write-Output "PS: installer exit code: $($p.ExitCode)"',
+      'if ($p.ExitCode -ne 0) {',
+      '  Write-Output "PS: silent install failed, trying interactive"',
+      '  $p2 = Start-Process -FilePath ' + exePath.replace(/'/g, "''") + ' -ArgumentList "/D=' + appDir.replace(/"/g, '""') + '" -Wait -PassThru',
+      '  Write-Output "PS: interactive exit code: $($p2.ExitCode)"',
+      '}',
+      'Start-Sleep -Seconds 3',
+      'for ($i = 1; $i -le 10; $i++) {',
+      '  try {',
+      '    Start-Process ' + appExe.replace(/'/g, "''") + ' -WindowStyle Normal',
+      '    Write-Output "PS: app launched (attempt $i)"',
+      '    break',
+      '  } catch {',
+      '    Write-Output "PS: attempt $i failed: $_"',
+      '    Start-Sleep -Seconds 3',
+      '  }',
+      '}',
+      'Remove-Item ' + exePath.replace(/'/g, "''") + ' -ErrorAction SilentlyContinue',
+      'Remove-Item $PSCommandPath -ErrorAction SilentlyContinue',
+      'Write-Output "PS: done"'
     ].join('\r\n');
-    fs.writeFileSync(scriptPath, vbsScript, 'utf8');
-    dbg('update script written: ' + scriptPath + '\n' + vbsScript);
+    fs.writeFileSync(psPath, psScript, 'utf8');
+    dbg('update script written: ' + psPath);
 
-    // Launch via wscript.exe (no console window)
-    const child = spawn('wscript.exe', [scriptPath], {
+    // Launch PowerShell with hidden window, bypass execution policy
+    const child = spawn('powershell.exe', [
+      '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden',
+      '-File', psPath
+    ], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true
     });
     child.unref();
-    child.on('error', err => dbg('wscript spawn error: ' + err.message));
+    child.on('error', err => dbg('powershell spawn error: ' + err.message));
 
     // Give wscript a moment to start, then quit
     await new Promise(r => setTimeout(r, 1000));
