@@ -28,6 +28,7 @@ function createWindow() {
   mainWindow.loadFile('index.html');
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('close', (e) => { if (!app.isQuitting) { e.preventDefault(); mainWindow.hide(); } });
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => { callback(true); });
 
   const trayIcon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
