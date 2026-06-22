@@ -16,3 +16,8 @@ test_extract/
 *.tmp.*
 *.log
 debug.log
+_*.js
+_*.txt
+rel_*/
+release*/
+summary.md
