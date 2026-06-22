@@ -881,7 +881,7 @@ function nativeNotif(title,body){if(config.dnd)return;if(document.hasFocus())ret
 function setSyncStatus(s){const d=document.getElementById("syncDot");if(!d)return;d.className="sync-dot"+(s==="offline"?" offline":s==="error"?" error":"")}
 function getDB(){try{const r=localStorage.getItem(DB_KEY);return r?JSON.parse(r):{users:{}}}catch{return{users:{}}}}
 function saveDB(db){try{localStorage.setItem(DB_KEY,JSON.stringify(db));if(window.electronAPI&&window.electronAPI.writeFileDB)window.electronAPI.writeFileDB(db)}catch{}}
-function loadFileDB(){if(window.electronAPI&&window.electronAPI.readFileDB)window.electronAPI.readFileDB().then(data=>{if(data&&data.users&&Object.keys(data.users).length){const ls=localStorage.getItem(DB_KEY);if(!ls||JSON.parse(ls).users&&!Object.keys(JSON.parse(ls).users).length){localStorage.setItem(DB_KEY,JSON.stringify(data))}}}).catch(()=>{})}
+function loadFileDB(){if(window.electronAPI&&window.electronAPI.readFileDB)window.electronAPI.readFileDB().then(data=>{if(data&&data.users&&Object.keys(data.users).length){const ls=localStorage.getItem(DB_KEY);let shouldRestore=!ls;if(ls){try{const parsed=JSON.parse(ls);shouldRestore=!parsed.users||!Object.keys(parsed.users).length}catch{shouldRestore=true}if(shouldRestore){localStorage.setItem(DB_KEY,JSON.stringify(data))}}}}).catch(()=>{})}
 
 async function syncUserToSupabase(u,h,c){try{await sbUpsert("users",{username:u,password_hash:h},"username");await sbUpsert("configs",{username:u,config:c},"username");setSyncStatus("ok")}catch{setSyncStatus("offline")}}
 async function syncLeaderboardToSupabase(lb){if(!lb.length)return;try{await sbUpsert("leaderboard",lb.map(e=>({username:e.user,completed_at:e.completedAt})),"username");setSyncStatus("ok")}catch{setSyncStatus("offline")}}
