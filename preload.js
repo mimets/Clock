@@ -22,5 +22,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTyping: (channelId, username) => ipcRenderer.invoke('set-typing', channelId, username),
   getTypingUsers: (channelId) => ipcRenderer.invoke('get-typing-users', channelId),
   wipeDatabase: () => ipcRenderer.invoke('wipe-database'),
-  resetUser: (targetUsername) => ipcRenderer.invoke('reset-user', targetUsername)
+  resetUser: (targetUsername) => ipcRenderer.invoke('reset-user', targetUsername),
+  getScreenSource: () => ipcRenderer.invoke('get-screen-source')
 });

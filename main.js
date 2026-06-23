@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, safeStorage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, safeStorage, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -16,6 +16,7 @@ function dbg(m) { try { fs.appendFileSync(logPath, new Date().toISOString()+' '+
 let mainWindow, tray;
 let updateVersion = null;
 let isDownloading = false;
+try { app.commandLine.appendSwitch('enable-experimental-web-platform-features'); } catch(e) {}
 
 function createWindow() {
   dbg('createWindow');
@@ -596,6 +597,9 @@ ipcMain.handle('migrate-db', async (_e, pw) => {
 });
 
 app.on('ready', () => {
+  ipcMain.handle('get-screen-source', async () => {
+    try { const sources = await desktopCapturer.getSources({ types: ['screen'] }); return sources.length ? { id: sources[0].id, name: sources[0].name } : null; } catch(e) { return null; }
+  });
   ipcMain.handle('get-app-version', () => app.getVersion());
   ipcMain.handle('set-auto-start', async () => {
     try { app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe') }); return true; } catch(e) { return false; }
