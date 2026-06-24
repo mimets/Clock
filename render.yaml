@@ -3,7 +3,7 @@ services:
     name: stage-tracker
     runtime: static
     staticPublishPath: .
-    buildCommand: echo "static"
+    buildCommand: ""
     pullRequestPreviewsEnabled: false
     headers:
       - path: /*
