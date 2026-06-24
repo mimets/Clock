@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: stage-tracker
+    runtime: static
+    staticPublishPath: .
+    buildCommand: echo "static"
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
